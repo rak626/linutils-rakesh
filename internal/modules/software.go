@@ -82,7 +82,7 @@ func InstallSoftware(manager pkgmanager.PackageManager) error {
 			case "General Software":
 				manager.Install(item.Key)
 			case "Manual Installs (curl/fsSL)":
-				installFromConfig(config.ManualInstalls[item.Key])
+				installFromConfig(manager, config.ManualInstalls[item.Key])
 			case "Web Apps (Chromium based)":
 				if !manager.IsInstalled("chromium") {
 					fmt.Println("Installing Chromium for WebApps...")
@@ -118,9 +118,9 @@ func InstallSoftware(manager pkgmanager.PackageManager) error {
 					createWebApp(item.Name, item.Key)
 				}
 			case "AI Tools":
-				installFromConfig(config.AIInstalls[item.Key])
+				installFromConfig(manager, config.AIInstalls[item.Key])
 			case "Helper Tools":
-				installFromConfig(config.HelperInstalls[item.Key])
+				installFromConfig(manager, config.HelperInstalls[item.Key])
 			}
 		}
 	} else if action == "r" {
@@ -158,7 +158,7 @@ func removeWebApp(name string) {
 	runSimpleCmd("update-desktop-database ~/.local/share/applications")
 }
 
-func installFromConfig(inst config.InstallConfig) {
+func installFromConfig(manager pkgmanager.PackageManager, inst config.InstallConfig) {
 	if inst.Check != "" {
 		if strings.HasPrefix(inst.Check, "~/") {
 			home := os.Getenv("HOME")
@@ -171,6 +171,24 @@ func installFromConfig(inst config.InstallConfig) {
 			if _, err := exec.LookPath(inst.Check); err == nil {
 				fmt.Printf("%s is already installed.\n", inst.Name)
 				return
+			}
+		}
+	}
+
+	// Install dependencies if any
+	if len(inst.Deps) > 0 {
+		fmt.Printf("Checking dependencies for %s: %v\n", inst.Name, inst.Deps)
+		var missingDeps []string
+		for _, dep := range inst.Deps {
+			if !manager.IsInstalled(dep) {
+				missingDeps = append(missingDeps, dep)
+			}
+		}
+
+		if len(missingDeps) > 0 {
+			fmt.Printf("Installing missing dependencies: %v\n", missingDeps)
+			if err := manager.Install(missingDeps...); err != nil {
+				fmt.Printf("Warning: Failed to install dependencies: %v\n", err)
 			}
 		}
 	}

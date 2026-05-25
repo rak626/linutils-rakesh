@@ -3,7 +3,8 @@ package config
 type InstallConfig struct {
 	Name    string
 	Command string
-	Check   string // Path or binary name to check for existence
+	Check   string   // Path or binary name to check for existence
+	Deps    []string // System packages needed
 }
 
 var ManualInstalls = map[string]InstallConfig{
@@ -31,6 +32,12 @@ var ManualInstalls = map[string]InstallConfig{
 		Name:    "Bun Runtime",
 		Command: "curl -fsSL https://bun.sh/install | bash",
 		Check:   "bun",
+	},
+	"cliamp": {
+		Name:    "cliamp (Music Player)",
+		Command: "curl -fsSL https://raw.githubusercontent.com/bjarneo/cliamp/HEAD/install.sh | sh",
+		Check:   "cliamp",
+		Deps:    []string{"ffmpeg", "yt-dlp"},
 	},
 }
 
