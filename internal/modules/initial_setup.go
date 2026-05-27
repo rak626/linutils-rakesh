@@ -136,19 +136,8 @@ keepcache=True
 func setupDebian(manager pkgmanager.PackageManager) {
 	fmt.Println("\n--- Debian Initial Setup ---")
 
-	// 1. Apt Speedup & Configuration
-	fmt.Println("1. Optimizing Apt (Parallel downloads and better caching)...")
-	aptConfig := `Binary::apt::APT::Keep-Downloaded-Packages "true";
-Acquire::Languages "none";
-Acquire::ParallelDownloads "10";
-`
-	err := os.WriteFile("/tmp/99parallel", []byte(aptConfig), 0644)
-	if err == nil {
-		pkgmanager.RunCommand("sudo", "cp", "/tmp/99parallel", "/etc/apt/apt.conf.d/99parallel")
-	}
-
-	// 2. Enable Contrib, Non-Free and Non-Free-Firmware
-	fmt.Println("2. Ensuring non-free and contrib components are enabled...")
+	// 1. Enable Contrib, Non-Free and Non-Free-Firmware
+	fmt.Println("1. Ensuring non-free and contrib components are enabled...")
 	pkgmanager.RunCommand("sudo", "apt", "install", "-y", "software-properties-common")
 	// For Debian 12+, non-free-firmware is a separate component
 	pkgmanager.RunCommand("sudo", "sed", "-i", "s/main$/main contrib non-free non-free-firmware/g", "/etc/apt/sources.list")
@@ -157,11 +146,11 @@ Acquire::ParallelDownloads "10";
 	pkgmanager.RunCommand("sudo", "add-apt-repository", "-y", "non-free")
 	pkgmanager.RunCommand("sudo", "add-apt-repository", "-y", "non-free-firmware")
 
-	// 3. DNS Configuration
+	// 2. DNS Configuration
 	setupDNS()
 
-	// 4. Update System
-	fmt.Println("4. Updating system...")
+	// 3. Update System
+	fmt.Println("3. Updating system...")
 	manager.Update()
 	manager.Upgrade()
 
