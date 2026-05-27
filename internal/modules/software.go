@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/rakesh/linutils-rakesh/internal/config"
 	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
+	"github.com/rakesh/linutils-rakesh/internal/system"
 	"github.com/rakesh/linutils-rakesh/internal/tui"
 )
 
@@ -23,7 +24,7 @@ type SoftwareConfig struct {
 	Helpers []string
 }
 
-func InstallSoftware(manager pkgmanager.PackageManager) error {
+func InstallSoftware(manager pkgmanager.PackageManager, sysInfo system.Info) error {
 	var items []tui.ListItem
 
 	// 1. General Software
@@ -48,6 +49,11 @@ func InstallSoftware(manager pkgmanager.PackageManager) error {
 	// 5. Helper Tools
 	for key, inst := range config.HelperInstalls {
 		items = append(items, tui.ListItem{Key: key, Name: inst.Name, Category: "Helper Tools"})
+	}
+
+	// 6. Flatpak Installs
+	for key, inst := range config.FlatpakInstalls {
+		items = append(items, tui.ListItem{Key: key, Name: inst.Name, Category: "Flatpak Installs"})
 	}
 
 	action, results, err := tui.RunListUI("Software Installer", items)
@@ -82,7 +88,7 @@ func InstallSoftware(manager pkgmanager.PackageManager) error {
 			case "General Software":
 				manager.Install(item.Key)
 			case "Manual Installs (curl/fsSL)":
-				installFromConfig(manager, config.ManualInstalls[item.Key])
+				installFromConfig(manager, sysInfo, config.ManualInstalls[item.Key])
 			case "Web Apps (Chromium based)":
 				if !manager.IsInstalled("chromium") {
 					fmt.Println("Installing Chromium for WebApps...")
@@ -118,9 +124,18 @@ func InstallSoftware(manager pkgmanager.PackageManager) error {
 					createWebApp(item.Name, item.Key)
 				}
 			case "AI Tools":
-				installFromConfig(manager, config.AIInstalls[item.Key])
+				installFromConfig(manager, sysInfo, config.AIInstalls[item.Key])
 			case "Helper Tools":
-				installFromConfig(manager, config.HelperInstalls[item.Key])
+				installFromConfig(manager, sysInfo, config.HelperInstalls[item.Key])
+			case "Flatpak Installs":
+				if !isFlatpakReady() {
+					fmt.Println("Flatpak not ready. Setting up Flatpak first...")
+					if err := SetupFlatpak(manager, sysInfo); err != nil {
+						fmt.Printf("Error setting up Flatpak: %v\n", err)
+						continue
+					}
+				}
+				installFromConfig(manager, sysInfo, config.FlatpakInstalls[item.Key])
 			}
 		}
 	} else if action == "r" {
@@ -133,8 +148,13 @@ func InstallSoftware(manager pkgmanager.PackageManager) error {
 			switch item.Category {
 			case "General Software":
 				manager.Remove(item.Key)
-			case "Manual Installs (curl/fsSL)":
+		case "Manual Installs (curl/fsSL)":
+			if inst, ok := config.ManualInstalls[item.Key]; ok && len(inst.Remove) > 0 {
+				fmt.Printf("Removing %s...\n", item.Name)
+				runCommands(inst.Remove)
+			} else {
 				fmt.Printf("Manual removal not yet implemented for: %s\n", item.Name)
+			}
 			case "Web Apps (Chromium based)":
 				if item.Key != "custom" {
 					removeWebApp(item.Name)
@@ -143,11 +163,32 @@ func InstallSoftware(manager pkgmanager.PackageManager) error {
 				fmt.Printf("Manual removal not yet implemented for: %s\n", item.Name)
 			case "Helper Tools":
 				fmt.Printf("Manual removal not yet implemented for: %s\n", item.Name)
+			case "Flatpak Installs":
+				if inst, ok := config.FlatpakInstalls[item.Key]; ok && len(inst.Remove) > 0 {
+					fmt.Printf("Removing %s...\n", item.Name)
+					runCommands(inst.Remove)
+				} else {
+					fmt.Printf("Flatpak removal not yet implemented for: %s\n", item.Name)
+				}
 			}
 		}
 	}
 
 	return nil
+}
+
+func isFlatpakReady() bool {
+	_, err := exec.LookPath("flatpak")
+	if err != nil {
+		return false
+	}
+	// Also check if flathub is added
+	cmd := exec.Command("flatpak", "remotes")
+	out, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+	return strings.Contains(string(out), "flathub")
 }
 
 func removeWebApp(name string) {
@@ -158,7 +199,19 @@ func removeWebApp(name string) {
 	runSimpleCmd("update-desktop-database ~/.local/share/applications")
 }
 
-func installFromConfig(manager pkgmanager.PackageManager, inst config.InstallConfig) {
+func osGroup(osName string) string {
+	switch osName {
+	case "debian", "ubuntu", "pop", "linuxmint":
+		return "apt"
+	case "arch", "manjaro":
+		return "arch"
+	case "fedora":
+		return "fedora"
+	}
+	return "default"
+}
+
+func installFromConfig(manager pkgmanager.PackageManager, sysInfo system.Info, inst config.InstallConfig) {
 	if inst.Check != "" {
 		if strings.HasPrefix(inst.Check, "~/") {
 			home := os.Getenv("HOME")
@@ -193,8 +246,17 @@ func installFromConfig(manager pkgmanager.PackageManager, inst config.InstallCon
 		}
 	}
 
+	// Pick commands: CommandByOS takes priority, fall back to Command
+	cmds := inst.Command
+	group := osGroup(sysInfo.OS)
+	if osCmds, ok := inst.CommandByOS[group]; ok {
+		cmds = osCmds
+	} else if osCmds, ok := inst.CommandByOS[sysInfo.OS]; ok {
+		cmds = osCmds
+	}
+
 	fmt.Printf("Installing %s...\n", inst.Name)
-	runSimpleCmd(inst.Command)
+	runCommands(cmds)
 }
 
 
@@ -265,7 +327,21 @@ func downloadIcon(url, path string) error {
 
 func runSimpleCmd(shellCmd string) {
 	cmd := exec.Command("bash", "-c", shellCmd)
+	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()
+}
+
+func runCommands(commands []string) {
+	for _, cmdStr := range commands {
+		cmd := exec.Command("bash", "-c", cmdStr)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("Step failed, aborting: %v\n", err)
+			return
+		}
+	}
 }

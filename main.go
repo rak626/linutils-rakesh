@@ -31,7 +31,7 @@ func main() {
 		case tui.FeatureBase:
 			installBaseTools(manager, sysInfo)
 		case tui.FeatureSoftware:
-			modules.InstallSoftware(manager)
+			modules.InstallSoftware(manager, sysInfo)
 		case tui.FeatureDebloat:
 			modules.DebloatGnome(manager, sysInfo)
 		case tui.FeatureGit:
@@ -61,6 +61,8 @@ func main() {
 			if err := modules.SetupFlatpak(manager, sysInfo); err != nil {
 				fmt.Printf("Error configuring Flatpak: %v\n", err)
 			}
+		case tui.FeatureSDKMan:
+			modules.SetupSDKMan()
 		}
 	}
 
@@ -73,7 +75,7 @@ func installBaseTools(manager pkgmanager.PackageManager, sysInfo system.Info) {
 	
 	basePkgs := []string{
 		"neovim", "grep", "ripgrep", "fzf", "zoxide", "curl", "wget", 
-		"git", "vim", "micro", "btop", "htop", "nvtop", "fastfetch", "alacritty",
+		"git", "vim", "micro", "btop", "htop", "nvtop", "fastfetch", "alacritty", "jq",
 	}
 
 	// 'bat' is called 'batcat' on Debian/Ubuntu but 'bat' on others

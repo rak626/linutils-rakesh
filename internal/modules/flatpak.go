@@ -31,7 +31,7 @@ func SetupFlatpak(manager pkgmanager.PackageManager, sysInfo system.Info) error 
 
 	// Add Flathub repository
 	fmt.Println("Adding Flathub repository...")
-	err := pkgmanager.RunCommand("flatpak", "remote-add", "--if-not-exists", "flathub", "https://flathub.org/repo/flathub.flatpakrepo")
+	err := pkgmanager.RunCommand("sudo", "flatpak", "remote-add", "--if-not-exists", "flathub", "https://flathub.org/repo/flathub.flatpakrepo")
 	if err != nil {
 		return fmt.Errorf("failed to add flathub remote: %v", err)
 	}

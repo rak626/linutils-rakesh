@@ -25,6 +25,7 @@ const (
 	FeatureKeybinds  = "Keybindings"
 	FeatureGnomePerf = "GNOME Optimization"
 	FeatureFlatpak   = "Flatpak Setup"
+	FeatureSDKMan    = "SDKMan Setup"
 )
 
 func RunMainMenu(sysInfo system.Info) (MainConfig, error) {
@@ -58,6 +59,7 @@ func RunMainMenu(sysInfo system.Info) (MainConfig, error) {
 					huh.NewOption(FeatureKeybinds, FeatureKeybinds),
 					huh.NewOption(FeatureGnomePerf, FeatureGnomePerf),
 					huh.NewOption(FeatureFlatpak, FeatureFlatpak),
+				huh.NewOption(FeatureSDKMan, FeatureSDKMan),
 				).
 				Value(&cfg.Features).
 				WithKeyMap(km),
