@@ -23,6 +23,32 @@ var ManualInstalls = map[string]InstallConfig{
 		},
 		Check: "github-desktop",
 	},
+	"brave": {
+		Name: "Brave Browser",
+		CommandByOS: map[string][]string{
+			"apt": {
+				"sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg",
+				"sudo curl -fsSLo /etc/apt/sources.list.d/brave-browser-release.sources https://brave-browser-apt-release.s3.brave.com/brave-browser.sources",
+				"sudo apt update",
+				"sudo apt install -y brave-browser",
+			},
+			"fedora": {
+				"sudo dnf install -y dnf-plugins-core",
+				"sudo dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo",
+				"sudo dnf install -y brave-browser",
+			},
+			"arch": {
+				"sudo pacman -Sy --noconfirm brave-browser",
+			},
+		},
+		Remove: []string{
+			"sudo apt remove -y brave-browser 2>/dev/null",
+			"sudo dnf remove -y brave-browser 2>/dev/null",
+			"sudo pacman -Rs --noconfirm brave-browser 2>/dev/null",
+		},
+		Check: "brave-browser",
+		Deps:  []string{"curl"},
+	},
 	"zed": {
 		Name:    "Zed Editor",
 		Command: []string{"curl -f https://zed.dev/install.sh | sh"},
