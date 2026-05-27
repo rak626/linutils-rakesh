@@ -38,7 +38,7 @@ var ManualInstalls = map[string]InstallConfig{
 				"sudo dnf install -y brave-browser",
 			},
 			"arch": {
-				"sudo pacman -Sy --noconfirm brave-browser",
+				"curl -fsS https://dl.brave.com/install.sh | sh",
 			},
 		},
 		Remove: []string{
