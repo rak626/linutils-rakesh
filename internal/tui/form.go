@@ -11,28 +11,30 @@ type MainConfig struct {
 }
 
 const (
-	FeatureBase      = "Base Tools"
-	FeatureSoftware  = "Software Installer"
-	FeatureDebloat   = "Debloat Gnome"
-	FeatureGit       = "Git Setup"
-	FeatureGitHub    = "GitHub Setup"
-	FeatureAI        = "AI Tools"
-	FeatureShell     = "Shell Configuration"
-	FeatureHyprland  = "Hyprland Setup"
-	FeatureI3        = "i3wm Setup"
-	FeatureKeybinds  = "Keybindings"
-	FeatureGnomePerf = "GNOME Optimization"
-	FeatureFlatpak   = "Flatpak Setup"
-	FeatureSDKMan    = "SDKMan Setup"
-	FeatureDotfiles  = "Dotfiles Sync"
-	FeatureRepos     = "GitHub Repo Cloner"
-	FeatureNvidia    = "NVIDIA Driver Setup"
-	FeatureExit      = "Exit"
+	FeatureInitialSetup = "OS Initial Setup"
+	FeatureBase         = "Base Tools"
+	FeatureSoftware     = "Software Installer"
+	FeatureDebloat      = "Debloat Gnome"
+	FeatureGit          = "Git Setup"
+	FeatureGitHub       = "GitHub Setup"
+	FeatureAI           = "AI Tools"
+	FeatureShell        = "Shell Configuration"
+	FeatureHyprland     = "Hyprland Setup"
+	FeatureI3           = "i3wm Setup"
+	FeatureKeybinds     = "Keybindings"
+	FeatureGnomePerf    = "GNOME Optimization"
+	FeatureFlatpak      = "Flatpak Setup"
+	FeatureSDKMan       = "SDKMan Setup"
+	FeatureDotfiles     = "Dotfiles Sync"
+	FeatureRepos        = "GitHub Repo Cloner"
+	FeatureNvidia       = "NVIDIA Driver Setup"
+	FeatureExit         = "Exit"
 )
 
 func RunMainMenu(sysInfo system.Info, state *MainConfig) (MainConfig, error) {
 	if len(state.Items) == 0 {
 		state.Items = []ListItem{
+			{Key: FeatureInitialSetup, Name: FeatureInitialSetup},
 			{Key: FeatureBase, Name: FeatureBase},
 			{Key: FeatureSoftware, Name: FeatureSoftware},
 			{Key: FeatureDebloat, Name: FeatureDebloat},

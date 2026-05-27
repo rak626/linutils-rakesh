@@ -53,6 +53,8 @@ func main() {
 
 		for _, feature := range cfg.Features {
 			switch feature {
+			case tui.FeatureInitialSetup:
+				modules.RunInitialSetup(manager, sysInfo)
 			case tui.FeatureBase:
 				installBaseTools(manager, sysInfo)
 			case tui.FeatureSoftware:
