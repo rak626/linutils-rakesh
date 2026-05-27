@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/huh"
 	"github.com/rakesh/linutils-rakesh/internal/config"
@@ -93,7 +94,7 @@ func InstallSoftware(manager pkgmanager.PackageManager, sysInfo system.Info, ite
 					}
 
 					if item.Key == "custom" {
-						var name, url string
+						var name, url, iconURL string
 						form := huh.NewForm(
 							huh.NewGroup(
 								huh.NewInput().
@@ -104,6 +105,10 @@ func InstallSoftware(manager pkgmanager.PackageManager, sysInfo system.Info, ite
 									Title("App URL").
 									Placeholder("https://example.com").
 									Value(&url),
+								huh.NewInput().
+									Title("Icon URL (Optional)").
+									Placeholder("https://dashboardicons.com/...").
+									Value(&iconURL),
 							),
 						)
 						err := form.Run()
@@ -115,10 +120,10 @@ func InstallSoftware(manager pkgmanager.PackageManager, sysInfo system.Info, ite
 							if !strings.HasPrefix(url, "http") {
 								url = "https://" + url
 							}
-							createWebApp(name, url)
+							createWebApp(name, url, iconURL)
 						}
 					} else {
-						createWebApp(item.Name, item.Key)
+						createWebApp(item.Name, item.Key, "")
 					}
 				case "AI Tools":
 					installFromConfig(manager, sysInfo, config.AIInstalls[item.Key])
@@ -195,7 +200,8 @@ func isFlatpakReady() bool {
 func removeWebApp(name string) {
 	fmt.Printf("Removing WebApp: %s\n", name)
 	home := os.Getenv("HOME")
-	filePath := filepath.Join(home, ".local/share/applications", strings.ToLower(name)+".desktop")
+	kebabName := strings.ReplaceAll(strings.ToLower(name), " ", "-")
+	filePath := filepath.Join(home, ".local/share/applications", kebabName+".desktop")
 	os.Remove(filePath)
 	runSimpleCmd("update-desktop-database ~/.local/share/applications")
 }
@@ -262,51 +268,140 @@ func installFromConfig(manager pkgmanager.PackageManager, sysInfo system.Info, i
 
 
 
-func createWebApp(name, url string) {
+func createWebApp(name, url, iconURL string) {
 	fmt.Printf("Creating WebApp: %s\n", name)
 
 	home := os.Getenv("HOME")
 	iconDir := filepath.Join(home, ".local/share/applications/icons")
 	os.MkdirAll(iconDir, 0755)
-	iconPath := filepath.Join(iconDir, strings.ToLower(name)+".png")
+	
+	// Base icon name without extension
+	iconBaseName := strings.ToLower(strings.ReplaceAll(name, " ", "-"))
+	iconPath := "" // Will be set once we know the extension
 
-	// Download favicon
-	faviconURL := fmt.Sprintf("https://www.google.com/s2/favicons?domain=%s&sz=128", url)
-	if err := downloadIcon(faviconURL, iconPath); err != nil {
-		fmt.Printf("Warning: Could not download icon: %v\n", err)
-		iconPath = "chromium" // Fallback to chromium icon
+	// Normalize URL for icon fetching
+	domain := url
+	if strings.Contains(url, "://") {
+		parts := strings.Split(url, "/")
+		if len(parts) > 2 {
+			domain = parts[2]
+		}
 	}
 
+	// Generate a kebab-case name for dashboard-icons guessing
+	kebabName := strings.ReplaceAll(strings.ToLower(name), " ", "-")
+
+	fetched := false
+
+	// Check for builtin icons first
+	if svgContent, ok := builtinIcons[kebabName]; ok {
+		fmt.Printf("Using builtin high-quality SVG for: %s\n", name)
+		iconPath = filepath.Join(iconDir, iconBaseName+".svg")
+		if err := os.WriteFile(iconPath, []byte(svgContent), 0644); err == nil {
+			fetched = true
+		}
+	}
+
+	if !fetched {
+		// Icon fetching strategy
+		type iconSource struct {
+			url string
+			ext string
+		}
+
+		sources := []iconSource{}
+		if iconURL != "" {
+			ext := ".png"
+			if strings.HasSuffix(strings.ToLower(iconURL), ".svg") {
+				ext = ".svg"
+			}
+			sources = append(sources, iconSource{url: iconURL, ext: ext})
+		}
+
+		// Priority 1: Automated Dashboard Icons (SVG then PNG)
+		sources = append(sources,
+			iconSource{url: fmt.Sprintf("https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/svg/%s.svg", kebabName), ext: ".svg"},
+			iconSource{url: fmt.Sprintf("https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/%s.png", kebabName), ext: ".png"},
+		)
+
+		// Priority 2: High-res Google Favicon & DuckDuckGo Fallback
+		sources = append(sources,
+			iconSource{url: fmt.Sprintf("https://www.google.com/s2/favicons?domain=%s&sz=512", domain), ext: ".png"},
+			iconSource{url: fmt.Sprintf("https://icons.duckduckgo.com/ip3/%s.ico", domain), ext: ".ico"},
+		)
+
+		for _, src := range sources {
+			tempPath := filepath.Join(iconDir, iconBaseName+src.ext)
+			fmt.Printf("Trying icon source: %s\n", src.url)
+			if err := downloadIcon(src.url, tempPath); err == nil {
+				if info, err := os.Stat(tempPath); err == nil && info.Size() > 500 {
+					fetched = true
+					iconPath = tempPath
+					break
+				} else {
+					os.Remove(tempPath) // Clean up empty/small files
+				}
+			}
+		}
+
+		if !fetched {
+			fmt.Println("Warning: Could not fetch high-quality icon, falling back to chromium icon")
+			iconPath = "chromium"
+		}
+	}
+
+	chromiumBin := findChromiumBinary()
+	appID := strings.ReplaceAll(name, " ", "")
 	desktopFile := fmt.Sprintf(`[Desktop Entry]
 Version=1.0
 Type=Application
 Name=%s
 Comment=%s
-Exec=chromium --app=%s
+Exec=%s --class=%s --app=%s
 Icon=%s
 Terminal=false
 StartupNotify=true
+StartupWMClass=%s
 Categories=Network;WebBrowser;
-`, name, name, url, iconPath)
+`, name, name, chromiumBin, appID, url, iconPath, appID)
 
-	filePath := filepath.Join(home, ".local/share/applications", strings.ToLower(name)+".desktop")
+	filePath := filepath.Join(home, ".local/share/applications", kebabName+".desktop")
 
 	err := os.MkdirAll(filepath.Dir(filePath), 0755)
 	if err != nil {
 		fmt.Printf("Error creating directory: %v\n", err)
 		return
 	}
+	// Ensure both directories have correct permissions
+	appsDir := filepath.Dir(filePath)
+	os.MkdirAll(appsDir, 0755)
+	os.Chmod(appsDir, 0755)
+	os.Chmod(iconDir, 0755)
 
-	err = os.WriteFile(filePath, []byte(desktopFile), 0755) // Mark as executable
+	err = os.WriteFile(filePath, []byte(desktopFile), 0644)
 	if err != nil {
 		fmt.Printf("Error writing desktop file: %v\n", err)
 	}
 
+	fmt.Println("Refreshing desktop environment...")
 	runSimpleCmd("update-desktop-database ~/.local/share/applications")
+	runSimpleCmd("gtk-update-icon-cache ~/.local/share/icons >/dev/null 2>&1 || true")
 }
 
+func findChromiumBinary() string {
+	binaries := []string{"chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "brave-browser"}
+	for _, bin := range binaries {
+		if _, err := exec.LookPath(bin); err == nil {
+			return bin
+		}
+	}
+	return "chromium" // Fallback
+}
+
+
 func downloadIcon(url, path string) error {
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return err
 	}
