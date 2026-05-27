@@ -90,6 +90,8 @@ func main() {
 				modules.SetupDotfiles(manager)
 			case tui.FeatureRepos:
 				modules.CloneRepos(manager)
+			case tui.FeatureNvidia:
+				modules.SetupNvidia(manager, sysInfo)
 			}
 		}
 

@@ -26,6 +26,7 @@ const (
 	FeatureSDKMan    = "SDKMan Setup"
 	FeatureDotfiles  = "Dotfiles Sync"
 	FeatureRepos     = "GitHub Repo Cloner"
+	FeatureNvidia    = "NVIDIA Driver Setup"
 	FeatureExit      = "Exit"
 )
 
@@ -47,6 +48,7 @@ func RunMainMenu(sysInfo system.Info, state *MainConfig) (MainConfig, error) {
 			{Key: FeatureSDKMan, Name: FeatureSDKMan},
 			{Key: FeatureDotfiles, Name: FeatureDotfiles},
 			{Key: FeatureRepos, Name: FeatureRepos},
+			{Key: FeatureNvidia, Name: FeatureNvidia},
 			{Key: FeatureExit, Name: FeatureExit},
 		}
 	}
