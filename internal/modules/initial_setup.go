@@ -6,9 +6,20 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
 	"github.com/rakesh/linutils-rakesh/internal/system"
 	"github.com/rakesh/linutils-rakesh/internal/tui"
+)
+
+var (
+	alertStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#FFFFFF")).
+			Background(lipgloss.Color("#FF0000")).
+			Padding(1, 4).
+			MarginTop(1).
+			MarginBottom(1)
 )
 
 func RunInitialSetup(manager pkgmanager.PackageManager, sysInfo system.Info) error {
@@ -48,7 +59,37 @@ func RunInitialSetup(manager pkgmanager.PackageManager, sysInfo system.Info) err
 		}
 	}
 
+	if isRebootRequired(sysInfo) {
+		fmt.Println("\n" + alertStyle.Render("REBOOT REQUIRED: Significant system updates were applied. Please reboot your system now."))
+	}
+
 	return nil
+}
+
+func isRebootRequired(sysInfo system.Info) bool {
+	switch sysInfo.OS {
+	case "fedora":
+		// dnf needs-restarting -r returns 1 if reboot is needed
+		err := exec.Command("dnf", "needs-restarting", "-r").Run()
+		if err != nil {
+			return true
+		}
+	case "debian", "ubuntu", "pop", "linuxmint":
+		if _, err := os.Stat("/var/run/reboot-required"); err == nil {
+			return true
+		}
+	case "arch", "manjaro":
+		// On Arch, if the running kernel's module directory is gone, a new kernel was installed
+		out, err := exec.Command("uname", "-r").Output()
+		if err == nil {
+			kernelVer := strings.TrimSpace(string(out))
+			moduleDir := fmt.Sprintf("/usr/lib/modules/%s", kernelVer)
+			if _, err := os.Stat(moduleDir); os.IsNotExist(err) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func setupFedora(manager pkgmanager.PackageManager) {
@@ -89,7 +130,7 @@ keepcache=True
 	manager.Update()
 	manager.Upgrade()
 
-	fmt.Println("\nFedora setup complete. Reboot is recommended.")
+	fmt.Println("\nFedora setup complete.")
 }
 
 func setupDebian(manager pkgmanager.PackageManager) {
