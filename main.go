@@ -66,8 +66,6 @@ func main() {
 				modules.SetupGit(manager)
 			case tui.FeatureGitHub:
 				modules.SetupGitHub(manager)
-			case tui.FeatureAI:
-				fmt.Println("AI Tools selection integrated in Software Installer for now.")
 			case tui.FeatureShell:
 				modules.SetupShell(manager)
 			case tui.FeatureHyprland:
@@ -86,8 +84,6 @@ func main() {
 				if err := modules.SetupFlatpak(manager, sysInfo); err != nil {
 					fmt.Printf("Error configuring Flatpak: %v\n", err)
 				}
-			case tui.FeatureSDKMan:
-				modules.SetupSDKMan()
 			case tui.FeatureDotfiles:
 				modules.SetupDotfiles(manager)
 			case tui.FeatureRepos:

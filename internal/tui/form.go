@@ -17,14 +17,12 @@ const (
 	FeatureDebloat      = "Debloat Gnome"
 	FeatureGit          = "Git Setup"
 	FeatureGitHub       = "GitHub Setup"
-	FeatureAI           = "AI Tools"
 	FeatureShell        = "Shell Configuration"
 	FeatureHyprland     = "Hyprland Setup"
 	FeatureI3           = "i3wm Setup"
 	FeatureKeybinds     = "Keybindings"
 	FeatureGnomePerf    = "GNOME Optimization"
 	FeatureFlatpak      = "Flatpak Setup"
-	FeatureSDKMan       = "SDKMan Setup"
 	FeatureDotfiles     = "Dotfiles Sync"
 	FeatureRepos        = "GitHub Repo Cloner"
 	FeatureNvidia       = "NVIDIA Driver Setup"
@@ -40,14 +38,12 @@ func RunMainMenu(sysInfo system.Info, state *MainConfig) (MainConfig, error) {
 			{Key: FeatureDebloat, Name: FeatureDebloat},
 			{Key: FeatureGit, Name: FeatureGit},
 			{Key: FeatureGitHub, Name: FeatureGitHub},
-			{Key: FeatureAI, Name: FeatureAI},
 			{Key: FeatureShell, Name: FeatureShell},
 			{Key: FeatureHyprland, Name: FeatureHyprland},
 			{Key: FeatureI3, Name: FeatureI3},
 			{Key: FeatureKeybinds, Name: FeatureKeybinds},
 			{Key: FeatureGnomePerf, Name: FeatureGnomePerf},
 			{Key: FeatureFlatpak, Name: FeatureFlatpak},
-			{Key: FeatureSDKMan, Name: FeatureSDKMan},
 			{Key: FeatureDotfiles, Name: FeatureDotfiles},
 			{Key: FeatureRepos, Name: FeatureRepos},
 			{Key: FeatureNvidia, Name: FeatureNvidia},
