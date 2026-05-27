@@ -22,11 +22,12 @@ type ListItem struct {
 }
 
 type ListModel struct {
-	Title    string
-	Items    []ListItem
-	Cursor   int
-	Action   string // "r" for remove, "i" for install, "" for none
-	Finished bool
+	Title       string
+	Description string
+	Items       []ListItem
+	Cursor      int
+	Action      string // "r" for remove, "i" for install, "" for none
+	Finished    bool
 }
 
 func (m ListModel) Init() tea.Cmd {
@@ -70,6 +71,17 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Finished = true
 			return m, tea.Quit
 		case "i", "I", "enter":
+			// If nothing is selected, select the current item
+			anySelected := false
+			for _, item := range m.Items {
+				if item.Selected {
+					anySelected = true
+					break
+				}
+			}
+			if !anySelected {
+				m.Items[m.Cursor].Selected = true
+			}
 			m.Action = "i"
 			m.Finished = true
 			return m, tea.Quit
@@ -80,6 +92,9 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m ListModel) View() string {
 	s := titleStyle.Render(m.Title) + "\n"
+	if m.Description != "" {
+		s += helpStyle.Render(m.Description) + "\n"
+	}
 
 	var lastCategory string
 	for i, item := range m.Items {
@@ -93,12 +108,12 @@ func (m ListModel) View() string {
 			cursor = ">"
 		}
 
-		checked := "•" // Using a dot instead of [ ] for cleaner look, or stick to [ ]
+		checked := " "
 		if item.Selected {
 			checked = "✓"
 		}
 
-		line := fmt.Sprintf("%s %s %s", cursor, checked, item.Name)
+		line := fmt.Sprintf("%s [%s] %s", cursor, checked, item.Name)
 		if m.Cursor == i {
 			s += selectedItemStyle.Render(line) + "\n"
 		} else {
@@ -106,14 +121,19 @@ func (m ListModel) View() string {
 		}
 	}
 
-	s += helpStyle.Render("\n ↑/↓ Navigate • Space Select • Ctrl+A Toggle All • I Install • R Remove • Q Back")
+	s += helpStyle.Render("\n j/k Navigate • Space Select • Enter Confirm • R Remove • Q Back")
 	return s
 }
 
 func RunListUI(title string, items []ListItem) (string, []ListItem, error) {
+	return RunListUIWithDesc(title, "", items)
+}
+
+func RunListUIWithDesc(title, desc string, items []ListItem) (string, []ListItem, error) {
 	m := ListModel{
-		Title: title,
-		Items: items,
+		Title:       title,
+		Description: desc,
+		Items:       items,
 	}
 
 	p := tea.NewProgram(m)

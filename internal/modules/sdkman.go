@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 )
 
 func SetupSDKMan() {
@@ -58,4 +59,5 @@ sdk install maven
 	}
 
 	fmt.Println("SDKMAN setup complete!")
+	time.Sleep(1500 * time.Millisecond)
 }

@@ -2,14 +2,12 @@ package tui
 
 import (
 	"fmt"
-
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/huh"
 	"github.com/rakesh/linutils-rakesh/internal/system"
 )
 
 type MainConfig struct {
 	Features []string
+	Items    []ListItem
 }
 
 const (
@@ -26,46 +24,50 @@ const (
 	FeatureGnomePerf = "GNOME Optimization"
 	FeatureFlatpak   = "Flatpak Setup"
 	FeatureSDKMan    = "SDKMan Setup"
+	FeatureDotfiles  = "Dotfiles Sync"
+	FeatureRepos     = "GitHub Repo Cloner"
+	FeatureExit      = "Exit"
 )
 
-func RunMainMenu(sysInfo system.Info) (MainConfig, error) {
-	var cfg MainConfig
+func RunMainMenu(sysInfo system.Info, state *MainConfig) (MainConfig, error) {
+	if len(state.Items) == 0 {
+		state.Items = []ListItem{
+			{Key: FeatureBase, Name: FeatureBase},
+			{Key: FeatureSoftware, Name: FeatureSoftware},
+			{Key: FeatureDebloat, Name: FeatureDebloat},
+			{Key: FeatureGit, Name: FeatureGit},
+			{Key: FeatureGitHub, Name: FeatureGitHub},
+			{Key: FeatureAI, Name: FeatureAI},
+			{Key: FeatureShell, Name: FeatureShell},
+			{Key: FeatureHyprland, Name: FeatureHyprland},
+			{Key: FeatureI3, Name: FeatureI3},
+			{Key: FeatureKeybinds, Name: FeatureKeybinds},
+			{Key: FeatureGnomePerf, Name: FeatureGnomePerf},
+			{Key: FeatureFlatpak, Name: FeatureFlatpak},
+			{Key: FeatureSDKMan, Name: FeatureSDKMan},
+			{Key: FeatureDotfiles, Name: FeatureDotfiles},
+			{Key: FeatureRepos, Name: FeatureRepos},
+			{Key: FeatureExit, Name: FeatureExit},
+		}
+	}
 
-	// Customize keymap for MultiSelect to show "space" instead of "x"
-	km := huh.NewDefaultKeyMap()
-	km.MultiSelect.Toggle = key.NewBinding(key.WithKeys(" ", "x"), key.WithHelp("space", "toggle"))
+	desc := fmt.Sprintf(
+		"OS: %s %s\nDE: %s %s (%s)\n\nSelect the features you want to run.",
+		sysInfo.OS, sysInfo.OSVersion, sysInfo.DE, sysInfo.DEVersion, sysInfo.SessionType,
+	)
 
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewNote().
-				Title("Linutils Rakesh").
-				Description(fmt.Sprintf(
-					"OS: %s %s\nDE: %s %s (%s)\n\nSelect the features you want to run.",
-					sysInfo.OS, sysInfo.OSVersion, sysInfo.DE, sysInfo.DEVersion, sysInfo.SessionType,
-				)),
+	_, results, err := RunListUIWithDesc("Linutils Rakesh", desc, state.Items)
+	if err != nil {
+		return *state, err
+	}
 
-			huh.NewMultiSelect[string]().
-				Title("Main Menu").
-				Options(
-					huh.NewOption(FeatureBase, FeatureBase),
-					huh.NewOption(FeatureSoftware, FeatureSoftware),
-					huh.NewOption(FeatureDebloat, FeatureDebloat),
-					huh.NewOption(FeatureGit, FeatureGit),
-					huh.NewOption(FeatureGitHub, FeatureGitHub),
-					huh.NewOption(FeatureAI, FeatureAI),
-					huh.NewOption(FeatureShell, FeatureShell),
-					huh.NewOption(FeatureHyprland, FeatureHyprland),
-					huh.NewOption(FeatureI3, FeatureI3),
-					huh.NewOption(FeatureKeybinds, FeatureKeybinds),
-					huh.NewOption(FeatureGnomePerf, FeatureGnomePerf),
-					huh.NewOption(FeatureFlatpak, FeatureFlatpak),
-				huh.NewOption(FeatureSDKMan, FeatureSDKMan),
-				).
-				Value(&cfg.Features).
-				WithKeyMap(km),
-		),
-	).WithKeyMap(km)
+	state.Items = results
+	state.Features = []string{}
+	for _, item := range results {
+		if item.Selected {
+			state.Features = append(state.Features, item.Key)
+		}
+	}
 
-	err := form.Run()
-	return cfg, err
+	return *state, nil
 }

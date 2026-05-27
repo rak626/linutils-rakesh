@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,165 +17,165 @@ import (
 	"github.com/rakesh/linutils-rakesh/internal/tui"
 )
 
-type SoftwareConfig struct {
-	General []string
-	WebApps []string
-	Manual  []string
-	AI      []string
-	Helpers []string
-}
+func InstallSoftware(manager pkgmanager.PackageManager, sysInfo system.Info, items []tui.ListItem) ([]tui.ListItem, error) {
+	if len(items) == 0 {
+		// 1. General Software
+		items = append(items, tui.ListItem{Key: "chromium", Name: "Chromium Browser", Category: "General Software"})
 
-func InstallSoftware(manager pkgmanager.PackageManager, sysInfo system.Info) error {
-	var items []tui.ListItem
+		// 2. Manual Installs
+		for key, inst := range config.ManualInstalls {
+			items = append(items, tui.ListItem{Key: key, Name: inst.Name, Category: "Manual Installs (curl/fsSL)"})
+		}
 
-	// 1. General Software
-	items = append(items, tui.ListItem{Key: "chromium", Name: "Chromium Browser", Category: "General Software"})
+		// 3. Web Apps
+		items = append(items, tui.ListItem{Key: "custom", Name: "Add Custom Web App", Category: "Web Apps (Chromium based)"})
+		for name, url := range config.WebApps {
+			items = append(items, tui.ListItem{Key: url, Name: name, Category: "Web Apps (Chromium based)"})
+		}
 
-	// 2. Manual Installs
-	for key, inst := range config.ManualInstalls {
-		items = append(items, tui.ListItem{Key: key, Name: inst.Name, Category: "Manual Installs (curl/fsSL)"})
-	}
+		// 4. AI Tools
+		for key, inst := range config.AIInstalls {
+			items = append(items, tui.ListItem{Key: key, Name: inst.Name, Category: "AI Tools"})
+		}
 
-	// 3. Web Apps
-	items = append(items, tui.ListItem{Key: "custom", Name: "Add Custom Web App", Category: "Web Apps (Chromium based)"})
-	for name, url := range config.WebApps {
-		items = append(items, tui.ListItem{Key: url, Name: name, Category: "Web Apps (Chromium based)"})
-	}
+		// 5. Helper Tools
+		for key, inst := range config.HelperInstalls {
+			items = append(items, tui.ListItem{Key: key, Name: inst.Name, Category: "Helper Tools"})
+		}
 
-	// 4. AI Tools
-	for key, inst := range config.AIInstalls {
-		items = append(items, tui.ListItem{Key: key, Name: inst.Name, Category: "AI Tools"})
-	}
-
-	// 5. Helper Tools
-	for key, inst := range config.HelperInstalls {
-		items = append(items, tui.ListItem{Key: key, Name: inst.Name, Category: "Helper Tools"})
-	}
-
-	// 6. Flatpak Installs
-	for key, inst := range config.FlatpakInstalls {
-		items = append(items, tui.ListItem{Key: key, Name: inst.Name, Category: "Flatpak Installs"})
-	}
-
-	action, results, err := tui.RunListUI("Software Installer", items)
-	if err != nil {
-		return err
-	}
-
-	if action == "" {
-		return nil
-	}
-
-	selectedCount := 0
-	for _, item := range results {
-		if item.Selected {
-			selectedCount++
+		// 6. Flatpak Installs
+		for key, inst := range config.FlatpakInstalls {
+			items = append(items, tui.ListItem{Key: key, Name: inst.Name, Category: "Flatpak Installs"})
 		}
 	}
 
-	if selectedCount == 0 {
-		fmt.Println("No items selected.")
-		return nil
-	}
+	for {
+		action, results, err := tui.RunListUI("Software Installer", items)
+		if err != nil {
+			return results, err
+		}
 
-	if action == "i" {
-		fmt.Println("\n--- Installing Selected Software ---")
+		if action == "" {
+			break
+		}
+
+		// Sync selection state
+		items = results
+
+		selectedCount := 0
 		for _, item := range results {
-			if !item.Selected {
-				continue
+			if item.Selected {
+				selectedCount++
 			}
+		}
 
-			switch item.Category {
-			case "General Software":
-				manager.Install(item.Key)
-			case "Manual Installs (curl/fsSL)":
-				installFromConfig(manager, sysInfo, config.ManualInstalls[item.Key])
-			case "Web Apps (Chromium based)":
-				if !manager.IsInstalled("chromium") {
-					fmt.Println("Installing Chromium for WebApps...")
-					manager.Install("chromium")
+		if selectedCount == 0 {
+			fmt.Println("No items selected.")
+			continue
+		}
+
+		if action == "i" {
+			fmt.Println("\n--- Installing Selected Software ---")
+			for _, item := range results {
+				if !item.Selected {
+					continue
 				}
 
-				if item.Key == "custom" {
-					var name, url string
-					form := huh.NewForm(
-						huh.NewGroup(
-							huh.NewInput().
-								Title("App Name").
-								Placeholder("My Web App").
-								Value(&name),
-							huh.NewInput().
-								Title("App URL").
-								Placeholder("https://example.com").
-								Value(&url),
-						),
-					)
-					err := form.Run()
-					if err != nil {
-						fmt.Printf("Error getting custom web app details: %v\n", err)
-						continue
+				switch item.Category {
+				case "General Software":
+					manager.Install(item.Key)
+				case "Manual Installs (curl/fsSL)":
+					installFromConfig(manager, sysInfo, config.ManualInstalls[item.Key])
+				case "Web Apps (Chromium based)":
+					if !manager.IsInstalled("chromium") {
+						fmt.Println("Installing Chromium for WebApps...")
+						manager.Install("chromium")
 					}
-					if name != "" && url != "" {
-						if !strings.HasPrefix(url, "http") {
-							url = "https://" + url
+
+					if item.Key == "custom" {
+						var name, url string
+						form := huh.NewForm(
+							huh.NewGroup(
+								huh.NewInput().
+									Title("App Name").
+									Placeholder("My Web App").
+									Value(&name),
+								huh.NewInput().
+									Title("App URL").
+									Placeholder("https://example.com").
+									Value(&url),
+							),
+						)
+						err := form.Run()
+						if err != nil {
+							fmt.Printf("Error getting custom web app details: %v\n", err)
+							continue
 						}
-						createWebApp(name, url)
+						if name != "" && url != "" {
+							if !strings.HasPrefix(url, "http") {
+								url = "https://" + url
+							}
+							createWebApp(name, url)
+						}
+					} else {
+						createWebApp(item.Name, item.Key)
 					}
-				} else {
-					createWebApp(item.Name, item.Key)
-				}
-			case "AI Tools":
-				installFromConfig(manager, sysInfo, config.AIInstalls[item.Key])
-			case "Helper Tools":
-				installFromConfig(manager, sysInfo, config.HelperInstalls[item.Key])
-			case "Flatpak Installs":
-				if !isFlatpakReady() {
-					fmt.Println("Flatpak not ready. Setting up Flatpak first...")
-					if err := SetupFlatpak(manager, sysInfo); err != nil {
-						fmt.Printf("Error setting up Flatpak: %v\n", err)
-						continue
+				case "AI Tools":
+					installFromConfig(manager, sysInfo, config.AIInstalls[item.Key])
+				case "Helper Tools":
+					installFromConfig(manager, sysInfo, config.HelperInstalls[item.Key])
+				case "Flatpak Installs":
+					if !isFlatpakReady() {
+						fmt.Println("Flatpak not ready. Setting up Flatpak first...")
+						if err := SetupFlatpak(manager, sysInfo); err != nil {
+							fmt.Printf("Error setting up Flatpak: %v\n", err)
+							continue
+						}
 					}
+					installFromConfig(manager, sysInfo, config.FlatpakInstalls[item.Key])
 				}
-				installFromConfig(manager, sysInfo, config.FlatpakInstalls[item.Key])
 			}
-		}
-	} else if action == "r" {
-		fmt.Println("\n--- Removing Selected Software ---")
-		for _, item := range results {
-			if !item.Selected {
-				continue
-			}
+		} else if action == "r" {
+			fmt.Println("\n--- Removing Selected Software ---")
+			for _, item := range results {
+				if !item.Selected {
+					continue
+				}
 
-			switch item.Category {
-			case "General Software":
-				manager.Remove(item.Key)
-		case "Manual Installs (curl/fsSL)":
-			if inst, ok := config.ManualInstalls[item.Key]; ok && len(inst.Remove) > 0 {
-				fmt.Printf("Removing %s...\n", item.Name)
-				runCommands(inst.Remove)
-			} else {
-				fmt.Printf("Manual removal not yet implemented for: %s\n", item.Name)
-			}
-			case "Web Apps (Chromium based)":
-				if item.Key != "custom" {
-					removeWebApp(item.Name)
-				}
-			case "AI Tools":
-				fmt.Printf("Manual removal not yet implemented for: %s\n", item.Name)
-			case "Helper Tools":
-				fmt.Printf("Manual removal not yet implemented for: %s\n", item.Name)
-			case "Flatpak Installs":
-				if inst, ok := config.FlatpakInstalls[item.Key]; ok && len(inst.Remove) > 0 {
-					fmt.Printf("Removing %s...\n", item.Name)
-					runCommands(inst.Remove)
-				} else {
-					fmt.Printf("Flatpak removal not yet implemented for: %s\n", item.Name)
+				switch item.Category {
+				case "General Software":
+					manager.Remove(item.Key)
+				case "Manual Installs (curl/fsSL)":
+					if inst, ok := config.ManualInstalls[item.Key]; ok && len(inst.Remove) > 0 {
+						fmt.Printf("Removing %s...\n", item.Name)
+						runCommands(inst.Remove)
+					} else {
+						fmt.Printf("Manual removal not yet implemented for: %s\n", item.Name)
+					}
+				case "Web Apps (Chromium based)":
+					if item.Key != "custom" {
+						removeWebApp(item.Name)
+					}
+				case "AI Tools":
+					fmt.Printf("Manual removal not yet implemented for: %s\n", item.Name)
+				case "Helper Tools":
+					fmt.Printf("Manual removal not yet implemented for: %s\n", item.Name)
+				case "Flatpak Installs":
+					if inst, ok := config.FlatpakInstalls[item.Key]; ok && len(inst.Remove) > 0 {
+						fmt.Printf("Removing %s...\n", item.Name)
+						runCommands(inst.Remove)
+					} else {
+						fmt.Printf("Flatpak removal not yet implemented for: %s\n", item.Name)
+					}
 				}
 			}
 		}
+
+		fmt.Println("\nOperation complete! Press Enter to return to software list...")
+		bufio.NewReader(os.Stdin).ReadBytes('\n')
 	}
 
-	return nil
+	return items, nil
 }
 
 func isFlatpakReady() bool {
