@@ -15,8 +15,8 @@ func SetupNvidia(manager pkgmanager.PackageManager, sysInfo system.Info) error {
 	// Check if an NVIDIA GPU is present
 	lspci, err := exec.Command("lspci").Output()
 	if err == nil && !strings.Contains(strings.ToLower(string(lspci)), "nvidia") {
-		fmt.Println("Warning: No NVIDIA GPU detected via lspci.")
-		// We'll continue anyway in case detection failed but user knows they have it
+		fmt.Println("No NVIDIA GPU detected via lspci. Skipping installation.")
+		return nil
 	}
 
 	switch sysInfo.OS {
