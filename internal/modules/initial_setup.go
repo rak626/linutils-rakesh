@@ -62,8 +62,14 @@ installonly_limit=3
 clean_requirements_on_remove=True
 best=False
 skip_if_unavailable=True
+
+# --- Optimization Tweaks ---
 max_parallel_downloads=10
 fastestmirror=True
+metadata_expire=86400
+deltarpm=True
+defaultyes=True
+keepcache=True
 `
 	err := os.WriteFile("/tmp/dnf.conf", []byte(dnfConfig), 0644)
 	if err == nil {
