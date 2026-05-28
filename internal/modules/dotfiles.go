@@ -86,6 +86,10 @@ func SetupDotfiles(manager pkgmanager.PackageManager) error {
 	fmt.Println("Stowing selected configurations...")
 	for _, folder := range selectedFolders {
 		fmt.Printf("Stowing %s...\n", folder)
+		
+		// Pre-stow cleanup to handle auto-created directories (like Hyprland)
+		prepareForStow(home, dotfilesDir, folder)
+
 		// stow -v -R -t ~ folder
 		cmd := exec.Command("stow", "-v", "-R", "-t", home, folder)
 		cmd.Dir = dotfilesDir
@@ -98,4 +102,43 @@ func SetupDotfiles(manager pkgmanager.PackageManager) error {
 
 	fmt.Println("Dotfiles sync complete!")
 	return nil
+}
+
+// prepareForStow checks the structure inside ~/.dotfiles/<folder>
+// If it maps to a directory in ~/.config (e.g., ~/.config/hypr) that already exists,
+// it deletes the contents of the target directory so stow can link individual files
+// without complaining about existing directories or trying to link the parent.
+func prepareForStow(home, dotfilesDir, folder string) {
+	// Most dotfiles are stowed to ~/.config. We check if .config exists in the stow package.
+	sourceConfigPath := filepath.Join(dotfilesDir, folder, ".config")
+	if _, err := os.Stat(sourceConfigPath); os.IsNotExist(err) {
+		return // Not a standard .config stow package, skip cleanup
+	}
+
+	// Read directories inside ~/.dotfiles/<folder>/.config/
+	entries, err := os.ReadDir(sourceConfigPath)
+	if err != nil {
+		return
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			targetDir := filepath.Join(home, ".config", entry.Name())
+			// Check if target directory already exists and is not a symlink
+			if info, err := os.Lstat(targetDir); err == nil {
+				if info.Mode()&os.ModeSymlink == 0 && info.IsDir() {
+					fmt.Printf("  Cleaning up existing directory to allow stowing: %s\n", targetDir)
+					// Rename to .bak to be safe, removing old bak if needed
+					bakDir := targetDir + ".bak"
+					os.RemoveAll(bakDir)
+					if err := os.Rename(targetDir, bakDir); err != nil {
+						// If rename fails (e.g., cross-device or permission), try to remove
+						os.RemoveAll(targetDir)
+					}
+					// Recreate empty directory so stow links files inside it
+					os.MkdirAll(targetDir, 0755)
+				}
+			}
+		}
+	}
 }
