@@ -2,7 +2,9 @@ package modules
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
@@ -19,16 +21,28 @@ func SetupNvidia(manager pkgmanager.PackageManager, sysInfo system.Info) error {
 		return nil
 	}
 
+	var installErr error
 	switch sysInfo.OS {
 	case "debian", "ubuntu", "pop", "linuxmint":
-		return setupNvidiaDebian(manager, sysInfo)
+		installErr = setupNvidiaDebian(manager, sysInfo)
 	case "fedora":
-		return setupNvidiaFedora(manager)
+		installErr = setupNvidiaFedora(manager)
 	case "arch", "manjaro":
-		return setupNvidiaArch(manager)
+		installErr = setupNvidiaArch(manager)
 	default:
 		return fmt.Errorf("unsupported distribution for automated NVIDIA setup: %s", sysInfo.OS)
 	}
+
+	if installErr != nil {
+		return installErr
+	}
+
+	// Post-install logic: Environment Variables for Hyprland
+	if sysInfo.DE == "hyprland" {
+		return setupNvidiaHyprlandEnv()
+	}
+
+	return nil
 }
 
 func setupNvidiaDebian(manager pkgmanager.PackageManager, sysInfo system.Info) error {
@@ -37,32 +51,48 @@ func setupNvidiaDebian(manager pkgmanager.PackageManager, sysInfo system.Info) e
 		return pkgmanager.RunCommand("sudo", "ubuntu-drivers", "autoinstall")
 	}
 
-	fmt.Println("Detected Debian system. Ensuring non-free is enabled and installing nvidia-driver...")
-	// Note: This is a simplified version. Enabling non-free usually requires editing sources.list
-	// For now, we assume the user has non-free enabled or we try to install it.
+	fmt.Println("Detected Debian system. Installing nvidia-driver...")
 	return manager.Install("nvidia-driver", "nvidia-settings", "nvidia-xconfig")
 }
 
 func setupNvidiaFedora(manager pkgmanager.PackageManager) error {
-	fmt.Println("Ensuring RPM Fusion is enabled for Fedora...")
-	
-	// Enable RPM Fusion Free
-	err := pkgmanager.RunCommand("sudo", "dnf", "install", "-y", "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm")
-	if err != nil {
-		fmt.Printf("Warning: Failed to enable RPM Fusion Free (might already be enabled): %v\n", err)
-	}
-
-	// Enable RPM Fusion Nonfree
-	err = pkgmanager.RunCommand("sudo", "dnf", "install", "-y", "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm")
-	if err != nil {
-		fmt.Printf("Warning: Failed to enable RPM Fusion Nonfree (might already be enabled): %v\n", err)
-	}
-
 	fmt.Println("Installing NVIDIA drivers via dnf...")
-	return manager.Install("akmod-nvidia", "xorg-x11-drv-nvidia-cuda", "nvidia-settings")
+	// Note: Assumes RPM Fusion is already enabled by Initial Setup
+	return manager.Install("akmod-nvidia", "xorg-x11-drv-nvidia-cuda", "nvidia-settings", "libva-nvidia-driver")
 }
 
 func setupNvidiaArch(manager pkgmanager.PackageManager) error {
-	fmt.Println("Installing NVIDIA drivers via pacman...")
-	return manager.Install("nvidia", "nvidia-utils", "nvidia-settings")
+	fmt.Println("Installing NVIDIA drivers via pacman (DKMS)...")
+	// Use nvidia-dkms for better kernel update support
+	return manager.Install("nvidia-dkms", "nvidia-utils", "nvidia-settings", "libva-nvidia-driver")
+}
+
+func setupNvidiaHyprlandEnv() error {
+	fmt.Println("\n--- Configuring NVIDIA Environment Variables for Hyprland ---")
+	
+	home, _ := os.UserHomeDir()
+	hyprConfig := filepath.Join(home, ".config", "hypr", "hyprland.conf")
+
+	if _, err := os.Stat(hyprConfig); os.IsNotExist(err) {
+		fmt.Println("Hyprland config not found. Skipping environment variable injection.")
+		return nil
+	}
+
+	envVars := []string{
+		"env = LIBVA_DRIVER_NAME,nvidia",
+		"env = XDG_SESSION_TYPE,wayland",
+		"env = GBM_BACKEND,nvidia-drm",
+		"env = __GLX_VENDOR_LIBRARY_NAME,nvidia",
+		"env = WLR_NO_HARDWARE_CURSORS,1",
+	}
+
+	fmt.Println("Injecting Wayland/NVIDIA variables into hyprland.conf...")
+	for _, env := range envVars {
+		if err := appendToFileIfMissing(hyprConfig, env); err != nil {
+			return fmt.Errorf("failed to append %s: %v", env, err)
+		}
+	}
+
+	fmt.Println("NVIDIA environment variables configured successfully!")
+	return nil
 }

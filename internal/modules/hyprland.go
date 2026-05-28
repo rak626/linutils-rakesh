@@ -13,11 +13,16 @@ func SetupHyprland(manager pkgmanager.PackageManager, sysInfo system.Info) error
 	var pkgs []string
 	switch sysInfo.OS {
 	case "arch", "manjaro":
-		pkgs = []string{"hyprland", "waybar", "wofi", "kitty", "swaybg", "grim", "slurp"}
+		pkgs = []string{
+			"hyprland", "waybar", "wofi", "kitty", "hyprpaper", "grim", "slurp",
+			"wl-clipboard", "mako", "swaylock-effects", "xdg-desktop-portal-hyprland",
+			"polkit-kde-agent", "qt5-wayland", "qt6-wayland",
+			"pipewire", "wireplumber", "pipewire-pulse", "pavucontrol",
+		}
 	case "fedora":
-		pkgs = []string{"hyprland", "waybar", "wofi", "kitty", "swaybg", "grim", "slurp"}
+		pkgs = []string{"hyprland", "waybar", "wofi", "kitty", "hyprpaper", "grim", "slurp"}
 	case "debian", "ubuntu":
-		pkgs = []string{"hyprland", "waybar", "wofi", "kitty", "swaybg", "grim", "slurp"}
+		pkgs = []string{"hyprland", "waybar", "wofi", "kitty", "hyprpaper", "grim", "slurp"}
 	}
 
 	if err := manager.Install(pkgs...); err != nil {

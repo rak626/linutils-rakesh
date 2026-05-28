@@ -11,43 +11,76 @@ type MainConfig struct {
 }
 
 const (
-	FeatureInitialSetup = "OS Initial Setup"
-	FeatureBase         = "Base Tools"
-	FeatureSoftware     = "Software Installer"
-	FeatureDebloat      = "Debloat Gnome"
-	FeatureGit          = "Git Setup"
-	FeatureGitHub       = "GitHub Setup"
-	FeatureShell        = "Shell Configuration"
-	FeatureHyprland     = "Hyprland Setup"
-	FeatureI3           = "i3wm Setup"
-	FeatureKeybinds     = "Keybindings"
-	FeatureGnomePerf    = "GNOME Optimization"
-	FeatureFlatpak      = "Flatpak Setup"
-	FeatureDotfiles     = "Dotfiles Sync"
-	FeatureRepos        = "GitHub Repo Cloner"
-	FeatureNvidia       = "NVIDIA Driver Setup"
-	FeatureExit         = "Exit"
+	FeatureInitialSetup  = "OS Initial Setup"
+	FeatureBase          = "Base Tools"
+	FeatureSoftware      = "Software Installer"
+	FeatureDebloat       = "Debloat Gnome"
+	FeatureGit           = "Git Setup"
+	FeatureGitHub        = "GitHub Setup"
+	FeatureShell         = "Shell Configuration"
+	FeatureAlacritty     = "Alacritty Setup"
+	FeatureHyprland      = "Hyprland Setup"
+	FeatureHyprlandExtra = "Hyprland Extra Config"
+	FeatureI3            = "i3wm Setup"
+	FeatureKeybinds      = "Keybindings"
+	FeatureGnomePerf     = "GNOME Optimization"
+	FeatureFlatpak       = "Flatpak Setup"
+	FeatureDotfiles      = "Dotfiles Sync"
+	FeatureFonts         = "Fonts Setup"
+	FeatureIcons         = "Icons & Cursors"
+	FeatureRepos         = "GitHub Repo Cloner"
+	FeatureNvidia        = "NVIDIA Driver Setup"
+	FeatureBluetooth     = "Bluetooth & Audio (Omarchy-style)"
+	FeatureSDDM          = "SDDM Login Manager"
+	FeatureFileManagers  = "File Managers (Thunar/Yazi)"
+	FeatureEditors       = "Editor Config (NVim/Vim)"
+	FeatureScripts       = "Custom Scripts"
+	FeatureThemes        = "Application Themes"
+	FeatureThemeSwitcher = "Install Global Theme Switcher"
+	FeatureThemeSetup    = "Integrate Theme Switcher with Configs"
+	FeatureExit          = "Exit"
 )
 
 func RunMainMenu(sysInfo system.Info, state *MainConfig) (MainConfig, error) {
 	if len(state.Items) == 0 {
 		state.Items = []ListItem{
-			{Key: FeatureInitialSetup, Name: FeatureInitialSetup},
-			{Key: FeatureBase, Name: FeatureBase},
-			{Key: FeatureSoftware, Name: FeatureSoftware},
-			{Key: FeatureDebloat, Name: FeatureDebloat},
-			{Key: FeatureGit, Name: FeatureGit},
-			{Key: FeatureGitHub, Name: FeatureGitHub},
-			{Key: FeatureShell, Name: FeatureShell},
-			{Key: FeatureHyprland, Name: FeatureHyprland},
-			{Key: FeatureI3, Name: FeatureI3},
-			{Key: FeatureKeybinds, Name: FeatureKeybinds},
-			{Key: FeatureGnomePerf, Name: FeatureGnomePerf},
-			{Key: FeatureFlatpak, Name: FeatureFlatpak},
-			{Key: FeatureDotfiles, Name: FeatureDotfiles},
-			{Key: FeatureRepos, Name: FeatureRepos},
-			{Key: FeatureNvidia, Name: FeatureNvidia},
-			{Key: FeatureExit, Name: FeatureExit},
+			// --- System Core ---
+			{Key: FeatureInitialSetup, Name: FeatureInitialSetup, Category: "System Core"},
+			{Key: FeatureNvidia, Name: FeatureNvidia, Category: "System Core"},
+			{Key: FeatureBluetooth, Name: FeatureBluetooth, Category: "System Core"},
+			{Key: FeatureFonts, Name: FeatureFonts, Category: "System Core"},
+			{Key: FeatureIcons, Name: FeatureIcons, Category: "System Core"},
+			{Key: FeatureDebloat, Name: FeatureDebloat, Category: "System Core"},
+
+			// --- Desktop Environment ---
+			{Key: FeatureHyprland, Name: FeatureHyprland, Category: "Desktop Environment"},
+			{Key: FeatureHyprlandExtra, Name: FeatureHyprlandExtra, Category: "Desktop Environment"},
+			{Key: FeatureI3, Name: FeatureI3, Category: "Desktop Environment"},
+			{Key: FeatureSDDM, Name: FeatureSDDM, Category: "Desktop Environment"},
+			{Key: FeatureFileManagers, Name: FeatureFileManagers, Category: "Desktop Environment"},
+			{Key: FeatureKeybinds, Name: FeatureKeybinds, Category: "Desktop Environment"},
+			{Key: FeatureGnomePerf, Name: FeatureGnomePerf, Category: "Desktop Environment"},
+
+			// --- Software & Setup ---
+			{Key: FeatureBase, Name: FeatureBase, Category: "Software & Setup"},
+			{Key: FeatureSoftware, Name: FeatureSoftware, Category: "Software & Setup"},
+			{Key: FeatureEditors, Name: FeatureEditors, Category: "Software & Setup"},
+			{Key: FeatureGit, Name: FeatureGit, Category: "Software & Setup"},
+			{Key: FeatureGitHub, Name: FeatureGitHub, Category: "Software & Setup"},
+			{Key: FeatureRepos, Name: FeatureRepos, Category: "Software & Setup"},
+			{Key: FeatureFlatpak, Name: FeatureFlatpak, Category: "Software & Setup"},
+			{Key: FeatureScripts, Name: FeatureScripts, Category: "Software & Setup"},
+			{Key: FeatureShell, Name: FeatureShell, Category: "Software & Setup"},
+			{Key: FeatureAlacritty, Name: FeatureAlacritty, Category: "Software & Setup"},
+
+			// --- Theming (Omarchy-style) ---
+			{Key: FeatureThemeSwitcher, Name: FeatureThemeSwitcher, Category: "Theming (Omarchy-style)"},
+			{Key: FeatureThemeSetup, Name: FeatureThemeSetup, Category: "Theming (Omarchy-style)"},
+			{Key: FeatureThemes, Name: FeatureThemes, Category: "Theming (Omarchy-style)"},
+			{Key: FeatureDotfiles, Name: FeatureDotfiles, Category: "Theming (Omarchy-style)"},
+
+			// --- Exit ---
+			{Key: FeatureExit, Name: FeatureExit, Category: "Other"},
 		}
 	}
 

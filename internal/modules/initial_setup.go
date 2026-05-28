@@ -196,6 +196,13 @@ func setupArch(manager pkgmanager.PackageManager) {
 	manager.Update()
 	manager.Upgrade()
 
+	// 5. Install yay (AUR Helper)
+	if !pkgmanager.IsCommandAvailable("yay") {
+		fmt.Println("5. Installing yay (AUR Helper)...")
+		manager.Install("base-devel", "git")
+		pkgmanager.RunCommand("bash", "-c", "cd /tmp && git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm")
+	}
+
 	fmt.Println("\nArch setup complete.")
 }
 

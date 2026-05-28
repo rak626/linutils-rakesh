@@ -14,6 +14,19 @@ import (
 
 func main() {
 	sysInfo := system.GetSystemInfo()
+
+	// Check for standalone subcommands
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "theme":
+			manager, _ := pkgmanager.GetManager(sysInfo.OS)
+			if err := modules.RunStandaloneThemeSwitcher(manager, sysInfo); err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+	}
 	
 	manager, err := pkgmanager.GetManager(sysInfo.OS)
 	if err != nil {
@@ -68,8 +81,12 @@ func main() {
 				modules.SetupGitHub(manager)
 			case tui.FeatureShell:
 				modules.SetupShell(manager)
+			case tui.FeatureAlacritty:
+				modules.SetupAlacritty(manager)
 			case tui.FeatureHyprland:
 				modules.SetupHyprland(manager, sysInfo)
+			case tui.FeatureHyprlandExtra:
+				modules.ConfigureHyprlandExtras(manager)
 			case tui.FeatureI3:
 				modules.SetupI3(manager, sysInfo)
 			case tui.FeatureKeybinds:
@@ -86,10 +103,30 @@ func main() {
 				}
 			case tui.FeatureDotfiles:
 				modules.SetupDotfiles(manager)
+			case tui.FeatureFonts:
+				modules.SetupFonts(manager)
+			case tui.FeatureIcons:
+				modules.InstallIconAssets(manager)
 			case tui.FeatureRepos:
 				modules.CloneRepos(manager)
 			case tui.FeatureNvidia:
 				modules.SetupNvidia(manager, sysInfo)
+			case tui.FeatureBluetooth:
+				modules.SetupBluetoothAndAudio(manager, sysInfo)
+			case tui.FeatureSDDM:
+				modules.SetupSDDM(manager, sysInfo)
+			case tui.FeatureFileManagers:
+				modules.SetupFileManagers(manager, sysInfo)
+			case tui.FeatureEditors:
+				modules.SetupEditors(manager)
+			case tui.FeatureScripts:
+				modules.InstallCustomScripts(manager)
+			case tui.FeatureThemes:
+				modules.ApplyThemes(manager)
+			case tui.FeatureThemeSwitcher:
+				modules.InstallThemeSwitcher(manager)
+			case tui.FeatureThemeSetup:
+				modules.IntegrateThemeSwitcher()
 			}
 		}
 
