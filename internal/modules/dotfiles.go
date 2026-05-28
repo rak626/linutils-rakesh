@@ -10,7 +10,7 @@ import (
 	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
 )
 
-const dotfilesRepo = "git@github.com:rak626/dotfiles.git"
+const dotfilesRepo = "https://github.com/rak626/dotfiles.git"
 
 func SetupDotfiles(manager pkgmanager.PackageManager) error {
 	fmt.Println("\n--- Dotfiles Sync (GNU Stow) ---")

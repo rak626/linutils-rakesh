@@ -9,7 +9,7 @@ import (
 	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
 )
 
-const fontsRepo = "git@github.com:rak626/fonts.git"
+const fontsRepo = "https://github.com/rak626/fonts.git"
 
 func SetupFonts(manager pkgmanager.PackageManager) error {
 	fmt.Println("\n--- Fonts Setup ---")
