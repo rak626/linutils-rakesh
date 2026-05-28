@@ -51,7 +51,7 @@ func SetupDotfiles(manager pkgmanager.PackageManager) error {
 
 	var folders []string
 	for _, entry := range entries {
-		if entry.IsDir() && entry.Name()[0] != '.' {
+		if entry.IsDir() && entry.Name()[0] != '.' && entry.Name() != "kitty" {
 			folders = append(folders, entry.Name())
 		}
 	}
