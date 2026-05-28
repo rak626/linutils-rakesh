@@ -68,7 +68,7 @@ func SetupFileManagers(manager pkgmanager.PackageManager, sysInfo system.Info) e
 
 			keybindings := []string{
 				"bind = $mainMod, E, exec, thunar",
-				"bind = $mainMod SHIFT, E, exec, kitty yazi",
+				"bind = $mainMod SHIFT, E, exec, alacritty -e yazi",
 			}
 
 			for _, kb := range keybindings {

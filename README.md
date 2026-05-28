@@ -8,7 +8,7 @@ A powerful, TUI-based Linux system orchestrator and global theme switcher inspir
 
 ### 🎨 The Ultimate Theme Orchestrator
 Sync your entire aesthetic across **15+ applications** instantly. Selecting a theme (like *Rose Pine*, *Everforest*, or *Catppuccin*) cascades your colors to:
-- **Terminals**: Alacritty, Kitty, Ghostty
+- **Terminals**: Alacritty, Ghostty
 - **Editors**: Neovim, Vim, Zed, VSCodium
 - **System UI**: Hyprland (Borders), i3 (Window Decos), GTK (Apps), GNOME Shell, SDDM
 - **Utilities**: Waybar, Mako, btop, Starship, Ulauncher, SwayOSD, Hyprlock

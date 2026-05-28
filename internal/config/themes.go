@@ -12,7 +12,6 @@ type ThemeConfig struct {
 	VSCodium  string
 	Ghostty   string
 	Btop      string
-	Kitty     string
 	Icons     string
 	Cursor    string
 	Hyprland  string // Content for active_theme.conf
@@ -40,7 +39,6 @@ var GlobalThemes = []ThemeConfig{
 		VSCodium:  "Rosé Pine Moon",
 		Ghostty:   "rose-pine-moon",
 		Btop:      "rose-pine-moon",
-		Kitty:     "Rosé Pine Moon",
 		Icons:     "rose-pine",
 		Cursor:    "rose-pine-cursor",
 		Hyprland: `
@@ -100,7 +98,6 @@ $accent = rgb(c4a7e7)
 		VSCodium:  "Catppuccin Macchiato",
 		Ghostty:   "catppuccin-macchiato",
 		Btop:      "catppuccin-macchiato",
-		Kitty:     "Catppuccin Macchiato",
 		Icons:     "Papirus-Dark",
 		Cursor:    "catppuccin-macchiato-cursors",
 		Hyprland: `
@@ -143,7 +140,6 @@ $accent = rgb(c6a0f6)
 		VSCodium:  "Everforest Dark",
 		Ghostty:   "everforest",
 		Btop:      "everforest",
-		Kitty:     "Everforest Dark",
 		Icons:     "Papirus-Dark",
 		Cursor:    "Bibata-Modern-Classic",
 		Hyprland: `
@@ -176,7 +172,6 @@ general {
 		VSCodium:  "One Dark",
 		Ghostty:   "one-dark",
 		Btop:      "one-dark",
-		Kitty:     "One Dark",
 		Icons:     "Papirus-Dark",
 		Cursor:    "Bibata-Modern-Classic",
 		Hyprland: `
@@ -210,7 +205,6 @@ general {
 		VSCodium:  "Gruvbox Dark Medium",
 		Ghostty:   "gruvbox-dark",
 		Btop:      "gruvbox-dark",
-		Kitty:     "Gruvbox Dark",
 		Icons:     "Gruvbox-Plus-Dark",
 		Cursor:    "Gruvbox-Cursor",
 		Hyprland: `
@@ -243,7 +237,6 @@ general {
 		VSCodium:  "Miasma",
 		Ghostty:   "miasma",
 		Btop:      "miasma",
-		Kitty:     "Miasma",
 		Icons:     "Papirus-Dark",
 		Cursor:    "Bibata-Modern-Classic",
 		Hyprland: `

@@ -59,12 +59,12 @@ func SetupBluetoothAndAudio(manager pkgmanager.PackageManager, sysInfo system.In
 			hyprConf := filepath.Join(home, ".config/hypr/hyprland.conf")
 			if _, err := os.Stat(hyprConf); err == nil {
 				fmt.Println("Detected Hyprland, adding keybinds to hyprland.conf...")
-				appendToFileIfMissing(hyprConf, "bind = $mainMod CTRL, B, exec, kitty --class floating -e bluetui")
-				appendToFileIfMissing(hyprConf, "bind = $mainMod CTRL, A, exec, kitty --class floating -e wiremix")
+				appendToFileIfMissing(hyprConf, "bind = $mainMod CTRL, B, exec, alacritty --class floating -e bluetui")
+				appendToFileIfMissing(hyprConf, "bind = $mainMod CTRL, A, exec, alacritty --class floating -e wiremix")
 			} else {
 				fmt.Println("\nAdd these binds to your hyprland.conf:")
-				fmt.Println("bind = $mainMod CTRL, B, exec, kitty --class floating -e bluetui")
-				fmt.Println("bind = $mainMod CTRL, A, exec, kitty --class floating -e wiremix")
+				fmt.Println("bind = $mainMod CTRL, B, exec, alacritty --class floating -e bluetui")
+				fmt.Println("bind = $mainMod CTRL, A, exec, alacritty --class floating -e wiremix")
 			}
 		}
 	}

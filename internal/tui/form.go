@@ -43,45 +43,53 @@ const (
 
 func RunMainMenu(sysInfo system.Info, state *MainConfig) (MainConfig, error) {
 	if len(state.Items) == 0 {
-		state.Items = []ListItem{
-			// --- System Core ---
-			{Key: FeatureInitialSetup, Name: FeatureInitialSetup, Category: "System Core"},
-			{Key: FeatureNvidia, Name: FeatureNvidia, Category: "System Core"},
-			{Key: FeatureBluetooth, Name: FeatureBluetooth, Category: "System Core"},
-			{Key: FeatureFonts, Name: FeatureFonts, Category: "System Core"},
-			{Key: FeatureIcons, Name: FeatureIcons, Category: "System Core"},
-			{Key: FeatureDebloat, Name: FeatureDebloat, Category: "System Core"},
+		var items []ListItem
 
-			// --- Desktop Environment ---
-			{Key: FeatureHyprland, Name: FeatureHyprland, Category: "Desktop Environment"},
-			{Key: FeatureHyprlandExtra, Name: FeatureHyprlandExtra, Category: "Desktop Environment"},
-			{Key: FeatureI3, Name: FeatureI3, Category: "Desktop Environment"},
-			{Key: FeatureSDDM, Name: FeatureSDDM, Category: "Desktop Environment"},
-			{Key: FeatureFileManagers, Name: FeatureFileManagers, Category: "Desktop Environment"},
-			{Key: FeatureKeybinds, Name: FeatureKeybinds, Category: "Desktop Environment"},
-			{Key: FeatureGnomePerf, Name: FeatureGnomePerf, Category: "Desktop Environment"},
-
-			// --- Software & Setup ---
-			{Key: FeatureBase, Name: FeatureBase, Category: "Software & Setup"},
-			{Key: FeatureSoftware, Name: FeatureSoftware, Category: "Software & Setup"},
-			{Key: FeatureEditors, Name: FeatureEditors, Category: "Software & Setup"},
-			{Key: FeatureGit, Name: FeatureGit, Category: "Software & Setup"},
-			{Key: FeatureGitHub, Name: FeatureGitHub, Category: "Software & Setup"},
-			{Key: FeatureRepos, Name: FeatureRepos, Category: "Software & Setup"},
-			{Key: FeatureFlatpak, Name: FeatureFlatpak, Category: "Software & Setup"},
-			{Key: FeatureScripts, Name: FeatureScripts, Category: "Software & Setup"},
-			{Key: FeatureShell, Name: FeatureShell, Category: "Software & Setup"},
-			{Key: FeatureAlacritty, Name: FeatureAlacritty, Category: "Software & Setup"},
-
-			// --- Theming (Omarchy-style) ---
-			{Key: FeatureThemeSwitcher, Name: FeatureThemeSwitcher, Category: "Theming (Omarchy-style)"},
-			{Key: FeatureThemeSetup, Name: FeatureThemeSetup, Category: "Theming (Omarchy-style)"},
-			{Key: FeatureThemes, Name: FeatureThemes, Category: "Theming (Omarchy-style)"},
-			{Key: FeatureDotfiles, Name: FeatureDotfiles, Category: "Theming (Omarchy-style)"},
-
-			// --- Exit ---
-			{Key: FeatureExit, Name: FeatureExit, Category: "Other"},
+		// --- System Core ---
+		items = append(items, ListItem{Key: FeatureInitialSetup, Name: FeatureInitialSetup, Category: "System Core"})
+		items = append(items, ListItem{Key: FeatureNvidia, Name: FeatureNvidia, Category: "System Core"})
+		items = append(items, ListItem{Key: FeatureBluetooth, Name: FeatureBluetooth, Category: "System Core"})
+		items = append(items, ListItem{Key: FeatureFonts, Name: FeatureFonts, Category: "System Core"})
+		items = append(items, ListItem{Key: FeatureIcons, Name: FeatureIcons, Category: "System Core"})
+		
+		if sysInfo.DE == "gnome" {
+			items = append(items, ListItem{Key: FeatureDebloat, Name: FeatureDebloat, Category: "System Core"})
 		}
+
+		// --- Desktop Environment ---
+		items = append(items, ListItem{Key: FeatureHyprland, Name: FeatureHyprland, Category: "Desktop Environment"})
+		items = append(items, ListItem{Key: FeatureHyprlandExtra, Name: FeatureHyprlandExtra, Category: "Desktop Environment"})
+		items = append(items, ListItem{Key: FeatureI3, Name: FeatureI3, Category: "Desktop Environment"})
+		items = append(items, ListItem{Key: FeatureSDDM, Name: FeatureSDDM, Category: "Desktop Environment"})
+		items = append(items, ListItem{Key: FeatureFileManagers, Name: FeatureFileManagers, Category: "Desktop Environment"})
+		
+		if sysInfo.DE == "gnome" {
+			items = append(items, ListItem{Key: FeatureKeybinds, Name: FeatureKeybinds, Category: "Desktop Environment"})
+			items = append(items, ListItem{Key: FeatureGnomePerf, Name: FeatureGnomePerf, Category: "Desktop Environment"})
+		}
+
+		// --- Software & Setup ---
+		items = append(items, ListItem{Key: FeatureBase, Name: FeatureBase, Category: "Software & Setup"})
+		items = append(items, ListItem{Key: FeatureSoftware, Name: FeatureSoftware, Category: "Software & Setup"})
+		items = append(items, ListItem{Key: FeatureEditors, Name: FeatureEditors, Category: "Software & Setup"})
+		items = append(items, ListItem{Key: FeatureGit, Name: FeatureGit, Category: "Software & Setup"})
+		items = append(items, ListItem{Key: FeatureGitHub, Name: FeatureGitHub, Category: "Software & Setup"})
+		items = append(items, ListItem{Key: FeatureRepos, Name: FeatureRepos, Category: "Software & Setup"})
+		items = append(items, ListItem{Key: FeatureFlatpak, Name: FeatureFlatpak, Category: "Software & Setup"})
+		items = append(items, ListItem{Key: FeatureScripts, Name: FeatureScripts, Category: "Software & Setup"})
+		items = append(items, ListItem{Key: FeatureShell, Name: FeatureShell, Category: "Software & Setup"})
+		items = append(items, ListItem{Key: FeatureAlacritty, Name: FeatureAlacritty, Category: "Software & Setup"})
+
+		// --- Theming (Omarchy-style) ---
+		items = append(items, ListItem{Key: FeatureThemeSwitcher, Name: FeatureThemeSwitcher, Category: "Theming (Omarchy-style)"})
+		items = append(items, ListItem{Key: FeatureThemeSetup, Name: FeatureThemeSetup, Category: "Theming (Omarchy-style)"})
+		items = append(items, ListItem{Key: FeatureThemes, Name: FeatureThemes, Category: "Theming (Omarchy-style)"})
+		items = append(items, ListItem{Key: FeatureDotfiles, Name: FeatureDotfiles, Category: "Theming (Omarchy-style)"})
+
+		// --- Exit ---
+		items = append(items, ListItem{Key: FeatureExit, Name: FeatureExit, Category: "Other"})
+
+		state.Items = items
 	}
 
 	desc := fmt.Sprintf(

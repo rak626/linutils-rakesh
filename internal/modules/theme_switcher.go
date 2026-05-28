@@ -142,7 +142,6 @@ func ApplyGlobalTheme(theme config.ThemeConfig, sysInfo system.Info) error {
 	// New Universal Apps
 	updateGhostty(home, theme.Ghostty)
 	updateBtop(home, theme.Btop)
-	updateKitty(home, theme.Kitty)
 	updateIcons(theme.Icons, theme.Cursor)
 
 	// 2. Environment Specific Logic
@@ -288,15 +287,6 @@ func updateBtop(home, themeName string) {
 	fmt.Println("  - btop updated.")
 }
 
-func updateKitty(home, themeName string) {
-	if themeName == "" { return }
-	// Kitty themes are usually just a file we can overwrite with a 'include' if we have them
-	// but for now let's assume we use kitty-themes or manual snippets.
-	// A simpler way is to use the kitty +kitten themes command
-	exec.Command("kitty", "+kitten", "themes", "--reload-in=all", themeName).Run()
-	fmt.Println("  - Kitty updated via kitten.")
-}
-
 func updateIcons(iconTheme, cursorTheme string) {
 	if iconTheme != "" {
 		exec.Command("gsettings", "set", "org.gnome.desktop.interface", "icon-theme", iconTheme).Run()
@@ -401,14 +391,14 @@ func InstallThemeSwitcher(manager pkgmanager.PackageManager) error {
 	case "hyprland":
 		hyprConfig := filepath.Join(home, ".config", "hypr", "hyprland.conf")
 		if _, err := os.Stat(hyprConfig); err == nil {
-			keybind := "\nbind = $mainMod ALT, T, exec, kitty --class floating -e theme-switcher\n"
+			keybind := "\nbind = $mainMod ALT, T, exec, alacritty --class floating -e theme-switcher\n"
 			appendToFileIfMissing(hyprConfig, keybind)
 			fmt.Println("Added keybind to hyprland.conf: $mainMod + ALT + T")
 		}
 	case "i3":
 		i3Config := filepath.Join(home, ".config", "i3", "config")
 		if _, err := os.Stat(i3Config); err == nil {
-			keybind := "\nbindsym $mod+Mod1+t exec kitty --class floating -e theme-switcher\n"
+			keybind := "\nbindsym $mod+Mod1+t exec alacritty --class floating -e theme-switcher\n"
 			appendToFileIfMissing(i3Config, keybind)
 			fmt.Println("Added keybind to i3 config: $mod + Alt + T")
 		}
