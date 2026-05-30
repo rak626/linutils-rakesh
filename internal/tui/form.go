@@ -11,6 +11,7 @@ type MainConfig struct {
 }
 
 const (
+	FeatureQuickSetup    = "Full System Setup (Quick)"
 	FeatureInitialSetup  = "OS Initial Setup"
 	FeatureBase          = "Base Tools"
 	FeatureSoftware      = "Software Installer"
@@ -38,6 +39,7 @@ const (
 	FeatureThemes        = "Application Themes"
 	FeatureThemeSwitcher = "Install Global Theme Switcher"
 	FeatureThemeSetup    = "Integrate Theme Switcher with Configs"
+	FeatureThemeReset    = "Restore Original Configs (Reset Themes)"
 	FeatureExit          = "Exit"
 )
 
@@ -45,15 +47,23 @@ func RunMainMenu(sysInfo system.Info, state *MainConfig) (MainConfig, error) {
 	if len(state.Items) == 0 {
 		var items []ListItem
 
+		// --- Quick Actions ---
+		items = append(items, ListItem{
+			Key:         FeatureQuickSetup,
+			Name:        FeatureQuickSetup,
+			Category:    "Quick Actions",
+			Description: "One-click install: OS Setup, Base Tools, Flatpak, Shell, Fonts, Icons, and Editors.",
+		})
+
 		// --- System Core ---
-		items = append(items, ListItem{Key: FeatureInitialSetup, Name: FeatureInitialSetup, Category: "System Core"})
-		items = append(items, ListItem{Key: FeatureNvidia, Name: FeatureNvidia, Category: "System Core"})
-		items = append(items, ListItem{Key: FeatureBluetooth, Name: FeatureBluetooth, Category: "System Core"})
-		items = append(items, ListItem{Key: FeatureFonts, Name: FeatureFonts, Category: "System Core"})
-		items = append(items, ListItem{Key: FeatureIcons, Name: FeatureIcons, Category: "System Core"})
+		items = append(items, ListItem{Key: FeatureInitialSetup, Name: FeatureInitialSetup, Category: "System Core", Description: "DNF/Pacman/Apt optimization, RPM Fusion, and system updates."})
+		items = append(items, ListItem{Key: FeatureNvidia, Name: FeatureNvidia, Category: "System Core", Description: "Install NVIDIA drivers and configuration for your GPU."})
+		items = append(items, ListItem{Key: FeatureBluetooth, Name: FeatureBluetooth, Category: "System Core", Description: "Enable Bluetooth services and audio improvements."})
+		items = append(items, ListItem{Key: FeatureFonts, Name: FeatureFonts, Category: "System Core", Description: "Install JetBrains Mono, Nerd Fonts, and emoji sets."})
+		items = append(items, ListItem{Key: FeatureIcons, Name: FeatureIcons, Category: "System Core", Description: "Install Papirus icons and custom cursor themes."})
 		
 		if sysInfo.DE == "gnome" {
-			items = append(items, ListItem{Key: FeatureDebloat, Name: FeatureDebloat, Category: "System Core"})
+			items = append(items, ListItem{Key: FeatureDebloat, Name: FeatureDebloat, Category: "System Core", Description: "Remove pre-installed GNOME apps and services."})
 		}
 
 		// --- Desktop Environment ---
@@ -83,6 +93,7 @@ func RunMainMenu(sysInfo system.Info, state *MainConfig) (MainConfig, error) {
 		// --- Theming (Omarchy-style) ---
 		items = append(items, ListItem{Key: FeatureThemeSwitcher, Name: FeatureThemeSwitcher, Category: "Theming (Omarchy-style)"})
 		items = append(items, ListItem{Key: FeatureThemeSetup, Name: FeatureThemeSetup, Category: "Theming (Omarchy-style)"})
+		items = append(items, ListItem{Key: FeatureThemeReset, Name: FeatureThemeReset, Category: "Theming (Omarchy-style)", Description: "Restore original application configurations and GNOME theme defaults."})
 		items = append(items, ListItem{Key: FeatureThemes, Name: FeatureThemes, Category: "Theming (Omarchy-style)"})
 		items = append(items, ListItem{Key: FeatureDotfiles, Name: FeatureDotfiles, Category: "Theming (Omarchy-style)"})
 

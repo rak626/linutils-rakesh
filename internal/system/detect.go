@@ -13,9 +13,13 @@ type Info struct {
 	DE          string
 	DEVersion   string
 	SessionType string // wayland or x11
+	CPU         string
+	RAM         string
+	Disk        string
+	GPU         string
 }
 
-// GetSystemInfo detects the OS, Version, DE, and Session Type.
+// GetSystemInfo detects the OS, Version, DE, Session Type, and Hardware.
 func GetSystemInfo() Info {
 	info := Info{
 		OS:          "unknown",
@@ -23,6 +27,10 @@ func GetSystemInfo() Info {
 		DE:          "unknown",
 		DEVersion:   "unknown",
 		SessionType: "unknown",
+		CPU:         "unknown",
+		RAM:         "unknown",
+		Disk:        "unknown",
+		GPU:         "unknown",
 	}
 
 	// 1. Detect OS and Version from /etc/os-release
@@ -73,5 +81,27 @@ func GetSystemInfo() Info {
 		}
 	}
 
+	// 4. Hardware Detection
+	// CPU
+	if out, err := exec.Command("bash", "-c", "grep -m 1 'model name' /proc/cpuinfo | cut -d: -f2 | sed 's/^[ \t]*//'").Output(); err == nil {
+		info.CPU = strings.TrimSpace(string(out))
+	}
+
+	// RAM
+	if out, err := exec.Command("bash", "-c", "free -h | grep Mem | awk '{print $2}'").Output(); err == nil {
+		info.RAM = strings.TrimSpace(string(out))
+	}
+
+	// Disk
+	if out, err := exec.Command("bash", "-c", "df -h / | tail -1 | awk '{print $2}'").Output(); err == nil {
+		info.Disk = strings.TrimSpace(string(out))
+	}
+
+	// GPU
+	if out, err := exec.Command("bash", "-c", "lspci | grep -i vga | cut -d: -f3 | sed 's/^[ \t]*//' | head -n 1").Output(); err == nil {
+		info.GPU = strings.TrimSpace(string(out))
+	}
+
 	return info
 }
+

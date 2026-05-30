@@ -66,6 +66,21 @@ func main() {
 
 		for _, feature := range cfg.Features {
 			switch feature {
+			case tui.FeatureQuickSetup:
+				fmt.Println("\n>>> STARTING QUICK SETUP (Non-Theme) <<<")
+				modules.RunInitialSetup(manager, sysInfo)
+				installBaseTools(manager, sysInfo)
+				if sysInfo.DE == "gnome" {
+					modules.SetupGnomePerformance()
+					modules.SetupGnomeKeybinds()
+				}
+				modules.SetupFlatpak(manager, sysInfo)
+				modules.SetupShell(manager)
+				modules.SetupFonts(manager)
+				modules.InstallIconAssets(manager)
+				modules.SetupEditors(manager)
+				fmt.Println("\n>>> QUICK SETUP COMPLETE <<<")
+
 			case tui.FeatureInitialSetup:
 				modules.RunInitialSetup(manager, sysInfo)
 			case tui.FeatureBase:
@@ -127,6 +142,8 @@ func main() {
 				modules.InstallThemeSwitcher(manager)
 			case tui.FeatureThemeSetup:
 				modules.IntegrateThemeSwitcher()
+			case tui.FeatureThemeReset:
+				modules.RestoreThemeDefaults(sysInfo)
 			}
 		}
 

@@ -14,6 +14,83 @@ import (
 	"github.com/rakesh/linutils-rakesh/internal/system"
 )
 
+func backupFile(path string) {
+	if _, err := os.Stat(path); err != nil {
+		return // File doesn't exist, nothing to backup
+	}
+	backupPath := path + ".bak"
+	if _, err := os.Stat(backupPath); err == nil {
+		return // Backup already exists, don't overwrite the original backup
+	}
+
+	input, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	os.WriteFile(backupPath, input, 0644)
+	fmt.Printf("  - Backup created: %s\n", filepath.Base(backupPath))
+}
+
+func RestoreThemeDefaults(sysInfo system.Info) error {
+	fmt.Println("\n--- Restoring Original Configurations ---")
+	home, _ := os.UserHomeDir()
+
+	configs := []string{
+		filepath.Join(home, ".config", "alacritty", "alacritty.toml"),
+		filepath.Join(home, ".config", "zed", "settings.json"),
+		filepath.Join(home, ".config", "starship.toml"),
+		filepath.Join(home, ".config", "ghostty", "config"),
+		filepath.Join(home, ".config", "btop", "btop.conf"),
+		filepath.Join(home, ".config", "ulauncher", "settings.json"),
+		filepath.Join(home, ".config", "VSCodium", "User", "settings.json"),
+	}
+
+	restoredCount := 0
+	for _, path := range configs {
+		bak := path + ".bak"
+		if _, err := os.Stat(bak); err == nil {
+			if err := os.Rename(bak, path); err == nil {
+				fmt.Printf("  - Restored: %s\n", filepath.Base(path))
+				restoredCount++
+			}
+		}
+	}
+
+	// Reset GNOME settings to defaults
+	if sysInfo.DE == "gnome" {
+		fmt.Println("  - Resetting GNOME interface settings...")
+		exec.Command("gsettings", "reset", "org.gnome.desktop.interface", "gtk-theme").Run()
+		exec.Command("gsettings", "reset", "org.gnome.desktop.interface", "icon-theme").Run()
+		exec.Command("gsettings", "reset", "org.gnome.desktop.interface", "cursor-theme").Run()
+		exec.Command("gsettings", "reset", "org.gnome.desktop.interface", "color-scheme").Run()
+		exec.Command("gsettings", "reset", "org.gnome.shell.extensions.user-theme", "name").Run()
+		exec.Command("gsettings", "reset", "org.gnome.desktop.background", "picture-uri").Run()
+		exec.Command("gsettings", "reset", "org.gnome.desktop.background", "picture-uri-dark").Run()
+	}
+
+	// Remove symlinks created by ApplyThemes
+	themeDirs := []string{
+		filepath.Join(home, ".config", "rofi", "themes"),
+		filepath.Join(home, ".config", "ulauncher", "user-themes"),
+		filepath.Join(home, ".themes", "rose-pine"),
+		filepath.Join(home, ".themes", "everforest"),
+	}
+	for _, dir := range themeDirs {
+		if info, err := os.Lstat(dir); err == nil && info.Mode()&os.ModeSymlink != 0 {
+			os.Remove(dir)
+			fmt.Printf("  - Removed theme symlink: %s\n", filepath.Base(dir))
+		}
+	}
+
+	if restoredCount == 0 {
+		fmt.Println("No backups found to restore.")
+	} else {
+		fmt.Printf("\nSuccessfully restored %d configuration files.\n", restoredCount)
+	}
+
+	return nil
+}
+
 func RunStandaloneThemeSwitcher(manager pkgmanager.PackageManager, sysInfo system.Info) error {
 	var selectedThemeName string
 	
@@ -23,9 +100,10 @@ func RunStandaloneThemeSwitcher(manager pkgmanager.PackageManager, sysInfo syste
 		options[i] = huh.NewOption(t.Name, t.Name)
 	}
 
-	// Add option for community themes
-	options = append(options, huh.NewOption("--- Community Themes ---", "community_header"))
+	// Add option for community themes and reset
+	options = append(options, huh.NewOption("--- Management ---", "mgmt_header"))
 	options = append(options, huh.NewOption("Import Community Theme (GitHub URL)", "import_community"))
+	options = append(options, huh.NewOption("Restore Original Configs (Reset)", "restore_defaults"))
 
 	// Load local community themes from ~/.config/linutils/themes/
 	home, _ := os.UserHomeDir()
@@ -52,12 +130,16 @@ func RunStandaloneThemeSwitcher(manager pkgmanager.PackageManager, sysInfo syste
 		return err
 	}
 
-	if selectedThemeName == "community_header" {
+	if selectedThemeName == "mgmt_header" {
 		return RunStandaloneThemeSwitcher(manager, sysInfo) // Refresh
 	}
 
 	if selectedThemeName == "import_community" {
 		return handleImportCommunityTheme()
+	}
+
+	if selectedThemeName == "restore_defaults" {
+		return RestoreThemeDefaults(sysInfo)
 	}
 
 	var selectedTheme config.ThemeConfig
@@ -167,6 +249,7 @@ func ApplyGlobalTheme(theme config.ThemeConfig, sysInfo system.Info) error {
 func updateAlacritty(home, themeFile string) {
 	if themeFile == "" { return }
 	path := filepath.Join(home, ".config", "alacritty", "alacritty.toml")
+	backupFile(path)
 	content, err := os.ReadFile(path)
 	if err != nil { return }
 
@@ -181,6 +264,7 @@ func updateAlacritty(home, themeFile string) {
 func updateZed(home, themeName string) {
 	if themeName == "" { return }
 	path := filepath.Join(home, ".config", "zed", "settings.json")
+	backupFile(path)
 	content, err := os.ReadFile(path)
 	if err != nil { return }
 
@@ -198,6 +282,7 @@ func updateNeovim(home, themeName string) {
 	dir := filepath.Join(home, ".config", "nvim", "lua")
 	os.MkdirAll(dir, 0755)
 	path := filepath.Join(dir, "active_theme.lua")
+	backupFile(path)
 	content := fmt.Sprintf("vim.cmd.colorscheme(\"%s\")\n", themeName)
 	os.WriteFile(path, []byte(content), 0644)
 	fmt.Println("  - Neovim active_theme.lua updated.")
@@ -207,6 +292,7 @@ func updateVim(home, themeName string) {
 	if themeName == "" { return }
 	path := filepath.Join(home, ".vim", "active_theme.vim")
 	os.MkdirAll(filepath.Dir(path), 0755)
+	backupFile(path)
 	content := fmt.Sprintf("colorscheme %s\n", themeName)
 	os.WriteFile(path, []byte(content), 0644)
 	fmt.Println("  - Vim active_theme.vim updated.")
@@ -241,6 +327,7 @@ func updateGNOME(gtkTheme, shellTheme, wallpaper string) {
 func updateStarship(home, themeName string) {
 	if themeName == "" { return }
 	path := filepath.Join(home, ".config", "starship.toml")
+	backupFile(path)
 	content, err := os.ReadFile(path)
 	if err != nil { return }
 	re := regexp.MustCompile(`palette\s*=\s*".*"`)
@@ -253,6 +340,7 @@ func updateStarship(home, themeName string) {
 func updateVSCodium(home, themeName string) {
 	if themeName == "" { return }
 	path := filepath.Join(home, ".config", "VSCodium", "User", "settings.json")
+	backupFile(path)
 	content, err := os.ReadFile(path)
 	if err != nil { return }
 	var settings map[string]interface{}
@@ -266,6 +354,7 @@ func updateVSCodium(home, themeName string) {
 func updateGhostty(home, themeName string) {
 	if themeName == "" { return }
 	path := filepath.Join(home, ".config", "ghostty", "config")
+	backupFile(path)
 	content, err := os.ReadFile(path)
 	if err != nil { return }
 	re := regexp.MustCompile(`theme\s*=\s*.*`)
@@ -278,6 +367,7 @@ func updateGhostty(home, themeName string) {
 func updateBtop(home, themeName string) {
 	if themeName == "" { return }
 	path := filepath.Join(home, ".config", "btop", "btop.conf")
+	backupFile(path)
 	content, err := os.ReadFile(path)
 	if err != nil { return }
 	re := regexp.MustCompile(`color_theme\s*=\s*".*"`)
@@ -301,6 +391,7 @@ func updateIcons(iconTheme, cursorTheme string) {
 func updateWaybar(home, cssVars string) {
 	if cssVars == "" { return }
 	path := filepath.Join(home, ".config", "waybar", "active_theme.css")
+	backupFile(path)
 	os.MkdirAll(filepath.Dir(path), 0755)
 	os.WriteFile(path, []byte(cssVars), 0644)
 	// Waybar usually reloads on config change, but let's signal it
@@ -310,10 +401,8 @@ func updateWaybar(home, cssVars string) {
 
 func updateMako(home, configContent string) {
 	if configContent == "" { return }
-	// We'll generate a snippet and mako doesn't support 'source' easily in a single file
-	// but we can append it or use a separate file if user has configured it.
-	// For now, let's just write to a known location
 	path := filepath.Join(home, ".config", "mako", "active_theme")
+	backupFile(path)
 	os.MkdirAll(filepath.Dir(path), 0755)
 	os.WriteFile(path, []byte(configContent), 0644)
 	exec.Command("makoctl", "reload").Run()
@@ -323,6 +412,7 @@ func updateMako(home, configContent string) {
 func updateHyprlock(home, configContent string) {
 	if configContent == "" { return }
 	path := filepath.Join(home, ".config", "hypr", "active_theme_lock.conf")
+	backupFile(path)
 	os.MkdirAll(filepath.Dir(path), 0755)
 	os.WriteFile(path, []byte(configContent), 0644)
 	fmt.Println("  - Hyprlock theme updated.")
@@ -331,6 +421,7 @@ func updateHyprlock(home, configContent string) {
 func updateSwayOSD(home, cssContent string) {
 	if cssContent == "" { return }
 	path := filepath.Join(home, ".config", "swayosd", "style.css") // Assuming user uses this path
+	backupFile(path)
 	os.MkdirAll(filepath.Dir(path), 0755)
 	os.WriteFile(path, []byte(cssContent), 0644)
 	fmt.Println("  - SwayOSD theme updated.")
@@ -339,6 +430,7 @@ func updateSwayOSD(home, cssContent string) {
 func updateHyprland(home, configContent string) {
 	if configContent == "" { return }
 	path := filepath.Join(home, ".config", "hypr", "active_theme.conf")
+	backupFile(path)
 	os.MkdirAll(filepath.Dir(path), 0755)
 	os.WriteFile(path, []byte(configContent), 0644)
 	fmt.Println("  - Hyprland active_theme.conf updated.")
@@ -347,6 +439,7 @@ func updateHyprland(home, configContent string) {
 func updateI3(home, configContent string) {
 	if configContent == "" { return }
 	path := filepath.Join(home, ".config", "i3", "active_theme.i3")
+	backupFile(path)
 	os.MkdirAll(filepath.Dir(path), 0755)
 	os.WriteFile(path, []byte(configContent), 0644)
 	exec.Command("i3-msg", "reload").Run()
@@ -356,6 +449,7 @@ func updateI3(home, configContent string) {
 func updateUlauncher(home, themeName string) {
 	if themeName == "" { return }
 	path := filepath.Join(home, ".config", "ulauncher", "settings.json")
+	backupFile(path)
 	content, err := os.ReadFile(path)
 	if err != nil { return }
 	var settings map[string]interface{}

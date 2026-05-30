@@ -2,6 +2,8 @@ package modules
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -36,10 +38,16 @@ func SetupGnomeKeybinds() error {
 
 	// 6. Window Management
 	fmt.Println("Setting window management shortcuts...")
-	runGsettings("set", "org.gnome.desktop.wm.keybindings", "close", "['<Super>w']")
+	runGsettings("set", "org.gnome.desktop.wm.keybindings", "close", "['<Super>q']")
 
 	// 7. Custom Shortcuts
 	fmt.Println("Configuring custom app shortcuts...")
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %v", err)
+	}
+	toggleScriptPath := filepath.Join(home, ".dotfiles", "scripts", "gnome", "toggle-panel.sh")
 
 	customBinds := []string{
 		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/'",
@@ -48,6 +56,7 @@ func SetupGnomeKeybinds() error {
 		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/'",
 		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/'",
 		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom5/'",
+		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/'",
 	}
 
 	runGsettings("set", "org.gnome.settings-daemon.plugins.media-keys", "custom-keybindings", "["+strings.Join(customBinds, ", ")+"]")
@@ -58,6 +67,7 @@ func SetupGnomeKeybinds() error {
 	setupCustomBind(3, "Zed", "zed", "<Super>z")
 	setupCustomBind(4, "Brave", "brave-browser --new-window", "<Super>b")
 	setupCustomBind(5, "Ulauncher", "ulauncher-toggle", "<Super>d")
+	setupCustomBind(6, "Toggle GNOME Panel", toggleScriptPath, "<Super><Shift>h")
 
 	fmt.Println("GNOME keybindings setup complete.")
 	return nil
