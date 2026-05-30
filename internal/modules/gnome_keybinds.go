@@ -57,6 +57,8 @@ func SetupGnomeKeybinds() error {
 		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/'",
 		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom5/'",
 		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/'",
+		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom7/'",
+		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom8/'",
 	}
 
 	runGsettings("set", "org.gnome.settings-daemon.plugins.media-keys", "custom-keybindings", "["+strings.Join(customBinds, ", ")+"]")
@@ -64,10 +66,12 @@ func SetupGnomeKeybinds() error {
 	setupCustomBind(0, "Alacritty", "alacritty", "<Super>Return")
 	setupCustomBind(1, "Chromium", "chromium-browser --new-window", "<Super><Shift>Return")
 	setupCustomBind(2, "Files", "nautilus", "<Super>e")
-	setupCustomBind(3, "Zed", "zed", "<Super>z")
-	setupCustomBind(4, "Brave", "brave-browser --new-window", "<Super>b")
+	setupCustomBind(3, "Zed", "zed", "<Super><Shift>z")
+	setupCustomBind(4, "Brave", "brave-browser --new-window", "<Super><Shift>b")
 	setupCustomBind(5, "Ulauncher", "ulauncher-toggle", "<Super>d")
-	setupCustomBind(6, "Toggle GNOME Panel", toggleScriptPath, "<Super><Shift>h")
+	setupCustomBind(6, "Toggle GNOME Panel", toggleScriptPath, "<Super>h")
+	setupCustomBind(7, "Github Desktop", "github-desktop", "<Super><Shift>g")
+	setupCustomBind(8, "Intellij Idea", "idea", "<Super><Shift>i")
 
 	fmt.Println("GNOME keybindings setup complete.")
 	return nil
