@@ -22,16 +22,21 @@ func SetupGnomeKeybinds() error {
 	runGsettings("set", "org.gnome.mutter", "dynamic-workspaces", "false")
 	runGsettings("set", "org.gnome.desktop.wm.preferences", "num-workspaces", "9")
 
-	// 2. Remove existing Super+Number app bindings
-	// 3. Clear workspace bindings
-	// 4. Super+1..9 => switch workspace
-	// 5. Super+Shift+1..9 => move window
+	// 2. Remove existing Super+Number app bindings first to avoid conflict resolution races
 	for i := 1; i <= 9; i++ {
 		si := strconv.Itoa(i)
-		runGsettings("set", "org.gnome.shell.keybindings", "switch-to-application-"+si, "[]")
-		runGsettings("set", "org.gnome.desktop.wm.keybindings", "switch-to-workspace-"+si, "[]")
-		runGsettings("set", "org.gnome.desktop.wm.keybindings", "move-to-workspace-"+si, "[]")
+		runGsettings("set", "org.gnome.shell.keybindings", "switch-to-application-"+si, "@as []")
+	}
+	// 3. Clear existing workspace bindings
+	for i := 1; i <= 9; i++ {
+		si := strconv.Itoa(i)
+		runGsettings("set", "org.gnome.desktop.wm.keybindings", "switch-to-workspace-"+si, "@as []")
+		runGsettings("set", "org.gnome.desktop.wm.keybindings", "move-to-workspace-"+si, "@as []")
+	}
 
+	// 4. Set the new workspace bindings (Super+1..9 for switch, Super+Shift+1..9 for move window)
+	for i := 1; i <= 9; i++ {
+		si := strconv.Itoa(i)
 		runGsettings("set", "org.gnome.desktop.wm.keybindings", "switch-to-workspace-"+si, "['<Super>"+si+"']")
 		runGsettings("set", "org.gnome.desktop.wm.keybindings", "move-to-workspace-"+si, "['<Super><Shift>"+si+"']")
 	}
@@ -39,6 +44,17 @@ func SetupGnomeKeybinds() error {
 	// 6. Window Management
 	fmt.Println("Setting window management shortcuts...")
 	runGsettings("set", "org.gnome.desktop.wm.keybindings", "close", "['<Super>q']")
+
+	// Remove Super+H keybind (which is to hide/minimize the window)
+	runGsettings("set", "org.gnome.desktop.wm.keybindings", "minimize", "@as []")
+
+	// Configure Alt+Tab to switch windows on current workspace only
+	fmt.Println("Configuring Alt+Tab to switch windows on current workspace only...")
+	runGsettings("set", "org.gnome.desktop.wm.keybindings", "switch-applications", "['<Super>Tab']")
+	runGsettings("set", "org.gnome.desktop.wm.keybindings", "switch-applications-backward", "['<Shift><Super>Tab']")
+	runGsettings("set", "org.gnome.desktop.wm.keybindings", "switch-windows", "['<Alt>Tab']")
+	runGsettings("set", "org.gnome.desktop.wm.keybindings", "switch-windows-backward", "['<Shift><Alt>Tab']")
+	runGsettings("set", "org.gnome.shell.window-switcher", "current-workspace-only", "true")
 
 	// 7. Custom Shortcuts
 	fmt.Println("Configuring custom app shortcuts...")
