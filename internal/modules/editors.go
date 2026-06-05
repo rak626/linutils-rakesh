@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/charmbracelet/huh"
 	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
 )
 
@@ -13,29 +12,8 @@ import (
 func SetupEditors(manager pkgmanager.PackageManager) error {
 	fmt.Println("\n--- Editor Configuration ---")
 
-	var selectedEditors []string
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewMultiSelect[string]().
-				Title("Select Editors to Setup").
-				Description("Install editors and link configurations from ~/.dotfiles").
-				Options(
-					huh.NewOption("Neovim", "neovim"),
-					huh.NewOption("Vim", "vim"),
-					huh.NewOption("IdeaVim (Config Only)", "ideavim"),
-				).
-				Value(&selectedEditors),
-		),
-	)
-
-	if err := form.Run(); err != nil {
-		return err
-	}
-
-	if len(selectedEditors) == 0 {
-		fmt.Println("No editors selected.")
-		return nil
-	}
+	// Automated Setup for all supported editors
+	editors := []string{"neovim", "vim", "ideavim"}
 
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -43,11 +21,10 @@ func SetupEditors(manager pkgmanager.PackageManager) error {
 	}
 	dotfilesBase := filepath.Join(home, ".dotfiles")
 
-	for _, editor := range selectedEditors {
+	for _, editor := range editors {
 		switch editor {
 		case "neovim":
 			fmt.Println("\n[Neovim Setup]")
-			fmt.Println("Installing Neovim...")
 			if err := manager.Install("neovim"); err != nil {
 				fmt.Printf("Error installing neovim: %v\n", err)
 			}
@@ -59,13 +36,10 @@ func SetupEditors(manager pkgmanager.PackageManager) error {
 				if err := safeSymlink(src, dst); err != nil {
 					fmt.Printf("Error symlinking neovim config: %v\n", err)
 				}
-			} else {
-				fmt.Printf("No neovim config found at %s. Skipping configuration.\n", src)
 			}
 
 		case "vim":
 			fmt.Println("\n[Vim Setup]")
-			fmt.Println("Installing Vim...")
 			if err := manager.Install("vim"); err != nil {
 				fmt.Printf("Error installing vim: %v\n", err)
 			}
@@ -77,8 +51,6 @@ func SetupEditors(manager pkgmanager.PackageManager) error {
 				if err := safeSymlink(src, dst); err != nil {
 					fmt.Printf("Error symlinking vim config: %v\n", err)
 				}
-			} else {
-				fmt.Printf("No vim config found at %s. Skipping configuration.\n", src)
 			}
 
 		case "ideavim":
@@ -90,8 +62,6 @@ func SetupEditors(manager pkgmanager.PackageManager) error {
 				if err := safeSymlink(src, dst); err != nil {
 					fmt.Printf("Error symlinking ideavim config: %v\n", err)
 				}
-			} else {
-				fmt.Printf("No ideavim config found at %s. Skipping configuration.\n", src)
 			}
 		}
 	}

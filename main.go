@@ -19,7 +19,11 @@ func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "theme":
-			manager, _ := pkgmanager.GetManager(sysInfo.OS)
+			manager, _ := pkgmanager.GetManager(sysInfo.DistroID)
+			if err := pkgmanager.ValidateSudo(); err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
 			if err := modules.RunStandaloneThemeSwitcher(manager, sysInfo); err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
@@ -28,7 +32,7 @@ func main() {
 		}
 	}
 	
-	manager, err := pkgmanager.GetManager(sysInfo.OS)
+	manager, err := pkgmanager.GetManager(sysInfo.DistroID)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
@@ -64,21 +68,60 @@ func main() {
 			break
 		}
 
+		// Ensure sudo privileges once before starting automated operations
+		if err := pkgmanager.ValidateSudo(); err != nil {
+			fmt.Printf("Error: sudo validation failed: %v\n", err)
+			fmt.Println("\nPress Enter to return to menu...")
+			bufio.NewReader(os.Stdin).ReadBytes('\n')
+			continue
+		}
+
 		for _, feature := range cfg.Features {
 			switch feature {
+			case tui.FeatureGnomeSetup:
+				fmt.Println("\n>>> STARTING FULL GNOME SETUP <<<")
+				modules.RunInitialSetup(manager, sysInfo)
+				installBaseTools(manager, sysInfo)
+				modules.DebloatGnome(manager, sysInfo)
+				modules.SetupDotfiles(manager)
+				modules.SetupGnomePerformance()
+				modules.SetupGnomeKeybinds()
+				modules.SetupNvidia(manager, sysInfo)
+				modules.SetupShell(manager)
+				modules.SetupFonts(manager)
+				modules.SetupEditors(manager)
+				modules.InstallSoftware(manager, sysInfo, nil)
+				fmt.Println("\n>>> FULL GNOME SETUP COMPLETE <<<")
+
+			case tui.FeatureHyprlandSetup:
+				fmt.Println("\n>>> STARTING FULL HYPRLAND SETUP <<<")
+				modules.RunInitialSetup(manager, sysInfo)
+				installBaseTools(manager, sysInfo)
+				modules.SetupHyprland(manager, sysInfo)
+				modules.SetupDotfiles(manager)
+				modules.ConfigureHyprlandExtras(manager)
+				modules.SetupSDDM(manager, sysInfo)
+				modules.SetupNvidia(manager, sysInfo)
+				modules.SetupBluetoothAndAudio(manager, sysInfo)
+				modules.SetupShell(manager)
+				modules.SetupFonts(manager)
+				modules.SetupEditors(manager)
+				modules.InstallSoftware(manager, sysInfo, nil)
+				fmt.Println("\n>>> FULL HYPRLAND SETUP COMPLETE <<<")
+
 			case tui.FeatureQuickSetup:
 				fmt.Println("\n>>> STARTING QUICK SETUP (Non-Theme) <<<")
 				modules.RunInitialSetup(manager, sysInfo)
 				installBaseTools(manager, sysInfo)
-				if sysInfo.DE == "gnome" {
+				if sysInfo.DEID == "gnome" {
 					modules.SetupGnomePerformance()
 					modules.SetupGnomeKeybinds()
 				}
 				modules.SetupFlatpak(manager, sysInfo)
 				modules.SetupShell(manager)
 				modules.SetupFonts(manager)
-				modules.InstallIconAssets(manager)
 				modules.SetupEditors(manager)
+				modules.InstallSoftware(manager, sysInfo, nil)
 				fmt.Println("\n>>> QUICK SETUP COMPLETE <<<")
 
 			case tui.FeatureInitialSetup:
@@ -93,6 +136,9 @@ func main() {
 			case tui.FeatureGit:
 				modules.SetupGit(manager)
 			case tui.FeatureGitHub:
+				modules.SetupGitHub(manager)
+			case tui.FeatureGitCombined:
+				modules.SetupGit(manager)
 				modules.SetupGitHub(manager)
 			case tui.FeatureShell:
 				modules.SetupShell(manager)

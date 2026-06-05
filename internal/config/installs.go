@@ -168,13 +168,3 @@ var FlatpakInstalls = map[string]InstallConfig{
 		Deps:    []string{"flatpak"},
 	},
 }
-
-var WebApps = map[string]string{
-	"Discord":         "https://discord.com/app",
-	"WhatsApp":        "https://web.whatsapp.com",
-	"YouTube":         "https://www.youtube.com",
-	"X.com":           "https://x.com",
-	"Google Drive":    "https://drive.google.com",
-	"Google Messages": "https://messages.google.com/web",
-	"Google Meet":     "https://meet.google.com",
-}

@@ -37,11 +37,6 @@ func SetupNvidia(manager pkgmanager.PackageManager, sysInfo system.Info) error {
 		return installErr
 	}
 
-	// Post-install logic: Environment Variables for Hyprland
-	if sysInfo.DE == "hyprland" {
-		return setupNvidiaHyprlandEnv()
-	}
-
 	return nil
 }
 

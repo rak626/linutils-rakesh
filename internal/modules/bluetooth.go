@@ -5,30 +5,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/charmbracelet/huh"
 	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
 	"github.com/rakesh/linutils-rakesh/internal/system"
 )
 
 // SetupBluetoothAndAudio implements Omarchy-style Bluetooth & Audio Management.
 func SetupBluetoothAndAudio(manager pkgmanager.PackageManager, sysInfo system.Info) error {
-	var confirm bool
-	err := huh.NewConfirm().
-		Title("Bluetooth & Audio Management").
-		Description("Install Omarchy-style Bluetooth (bluetui) and Audio (wiremix) managers?").
-		Affirmative("Install").
-		Negative("Skip").
-		Value(&confirm).
-		Run()
-
-	if err != nil {
-		return err
-	}
-
-	if !confirm {
-		return nil
-	}
-
 	fmt.Println("\n--- Setting up Bluetooth & Audio Management ---")
 
 	if sysInfo.OS == "arch" || sysInfo.OS == "manjaro" {

@@ -12,6 +12,15 @@ import (
 
 // SetupSDDM configures the SDDM login manager with a custom theme.
 func SetupSDDM(manager pkgmanager.PackageManager, sysInfo system.Info) error {
+	// Check if any display manager is already installed/active
+	dms := []string{"sddm", "gdm", "lightdm", "lxdm", "slim"}
+	for _, dm := range dms {
+		if pkgmanager.IsCommandAvailable(dm) {
+			fmt.Printf("Display manager '%s' is already present. Skipping SDDM installation.\n", dm)
+			return nil
+		}
+	}
+
 	var installSDDM bool
 	confirm := huh.NewConfirm().
 		Title("SDDM Login Manager").
@@ -32,7 +41,6 @@ func SetupSDDM(manager pkgmanager.PackageManager, sysInfo system.Info) error {
 
 	// Disabling other display managers to avoid conflicts
 	fmt.Println("Attempting to disable other display managers (gdm, lightdm, lxdm, slim)...")
-	dms := []string{"gdm", "lightdm", "lxdm", "slim"}
 	for _, dm := range dms {
 		// We use RunCommand directly and ignore errors as these services might not exist
 		_ = pkgmanager.RunCommand("sudo", "systemctl", "disable", dm)

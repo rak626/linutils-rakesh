@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 // PackageManager defines the interface for different distro package managers.
@@ -16,22 +17,32 @@ type PackageManager interface {
 }
 
 // GetManager returns the appropriate PackageManager for the detected OS.
-func GetManager(osName string) (PackageManager, error) {
-	switch osName {
-	case "debian", "ubuntu", "pop", "linuxmint":
+func GetManager(distroID string) (PackageManager, error) {
+	switch strings.ToLower(distroID) {
+	case "debian", "ubuntu", "pop", "linuxmint", "kali", "raspbian":
 		return &AptManager{}, nil
-	case "arch", "manjaro":
+	case "arch", "manjaro", "endeavouros", "artix":
 		return &PacmanManager{}, nil
-	case "fedora":
+	case "fedora", "nobara", "riscos", "amzn":
 		return &DnfManager{}, nil
 	default:
-		return nil, fmt.Errorf("unsupported distribution: %s", osName)
+		return nil, fmt.Errorf("unsupported distribution ID: %s", distroID)
 	}
 }
 
 // RunCommand is a helper to execute shell commands and pipe output to stdout/stderr.
 func RunCommand(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// ValidateSudo ensures the user has sudo privileges and prompts for password if needed.
+func ValidateSudo() error {
+	fmt.Println("\n>>> This operation requires sudo privileges. Please enter your password if prompted.")
+	cmd := exec.Command("sudo", "-v")
+	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()

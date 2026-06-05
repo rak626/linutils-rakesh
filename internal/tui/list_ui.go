@@ -11,49 +11,75 @@ import (
 )
 
 var (
-	// Colors
-	accentColor = lipgloss.Color("#7D56F4")
-	white       = lipgloss.Color("#FFFFFF")
-	gray        = lipgloss.Color("#626262")
-	blue        = lipgloss.Color("#13BCED")
-	yellow      = lipgloss.Color("#F1FA8C")
+	// Colors - Nord-inspired / Modern
+	fgColor      = lipgloss.Color("#D8DEE9")
+	accentColor  = lipgloss.Color("#88C0D0") // Frost blue
+	successColor = lipgloss.Color("#A3BE8C") // Aurora green
+	warningColor = lipgloss.Color("#EBCB8B") // Aurora yellow
+	grayColor    = lipgloss.Color("#4C566A")
+	dimColor     = lipgloss.Color("#626262")
+	white        = lipgloss.Color("#FFFFFF")
 
 	// Styles
+	headerStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(accentColor).
+			MarginBottom(1).
+			Padding(0, 2)
+
 	sidebarStyle = lipgloss.NewStyle().
-			Width(30).
 			Padding(1, 2).
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(accentColor)
+			BorderForeground(grayColor).
+			Width(40) // Increased width
 
 	mainContentStyle = lipgloss.NewStyle().
 				Padding(1, 2).
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(accentColor)
 
-	headerStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(accentColor).
-			Padding(0, 1)
-
 	tabStyle = lipgloss.NewStyle().
 			Padding(0, 1).
-			Foreground(white)
+			Foreground(fgColor)
 
 	activeTabStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(accentColor).
-			Padding(0, 1).
-			Background(lipgloss.Color("#303030"))
+			Padding(0, 1)
+
+	selectedItemStyle = lipgloss.NewStyle().
+				Foreground(successColor).
+				Bold(true)
+
+	cursorItemStyle = lipgloss.NewStyle().
+			Background(grayColor).
+			Foreground(white).
+			Bold(true)
 
 	systemInfoStyle = lipgloss.NewStyle().
 			MarginTop(1).
-			Foreground(gray)
+			Border(lipgloss.NormalBorder(), true, false, false, false).
+			BorderForeground(grayColor).
+			PaddingTop(1)
 
 	sysKeyStyle = lipgloss.NewStyle().Foreground(accentColor).Bold(true)
-	sysValStyle = lipgloss.NewStyle().Foreground(white)
+	sysValStyle = lipgloss.NewStyle().Foreground(fgColor)
+
+	footerStyle = lipgloss.NewStyle().
+			MarginTop(1).
+			Padding(0, 2).
+			Border(lipgloss.NormalBorder(), true, false, false, false).
+			BorderForeground(grayColor)
 
 	helpLabelStyle = lipgloss.NewStyle().Foreground(accentColor).Bold(true)
-	helpKeyStyle   = lipgloss.NewStyle().Foreground(yellow)
+	helpKeyStyle   = lipgloss.NewStyle().Foreground(warningColor)
+	helpTextStyle  = lipgloss.NewStyle().Foreground(dimColor)
+
+	searchInputStyle = lipgloss.NewStyle().
+				Foreground(accentColor).
+				Border(lipgloss.NormalBorder()).
+				BorderForeground(grayColor).
+				Padding(0, 1)
 )
 
 type ListItem struct {
@@ -77,6 +103,7 @@ type ListModel struct {
 	Tabs       []string
 	ActiveTab  int
 	SearchInput textinput.Model
+	ScrollOffset int
 	Width      int
 	Height     int
 }
@@ -92,9 +119,6 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
 		m.Height = msg.Height
-		sidebarStyle.Height(m.Height - 10)
-		mainContentStyle.Height(m.Height - 10)
-		mainContentStyle.Width(m.Width - 40)
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -116,19 +140,23 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.Cursor = len(m.Filtered) - 1
 			}
+			m.fixScroll()
 		case "down", "j":
 			if m.Cursor < len(m.Filtered)-1 {
 				m.Cursor++
 			} else {
 				m.Cursor = 0
 			}
+			m.fixScroll()
 		case "tab":
 			m.ActiveTab = (m.ActiveTab + 1) % len(m.Tabs)
 			m.Cursor = 0
+			m.ScrollOffset = 0
 			m.filterItems()
 		case "shift+tab":
 			m.ActiveTab = (m.ActiveTab - 1 + len(m.Tabs)) % len(m.Tabs)
 			m.Cursor = 0
+			m.ScrollOffset = 0
 			m.filterItems()
 		case " ":
 			if len(m.Filtered) > 0 {
@@ -176,6 +204,22 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m *ListModel) fixScroll() {
+	if m.Height == 0 {
+		return
+	}
+	visibleHeight := m.Height - 16 // Buffer for header, footer, search, padding
+	if visibleHeight < 1 {
+		visibleHeight = 1
+	}
+
+	if m.Cursor < m.ScrollOffset {
+		m.ScrollOffset = m.Cursor
+	} else if m.Cursor >= m.ScrollOffset+visibleHeight {
+		m.ScrollOffset = m.Cursor - visibleHeight + 1
+	}
+}
+
 func (m *ListModel) filterItems() {
 	m.Filtered = []int{}
 	searchTerm := strings.ToLower(m.SearchInput.Value())
@@ -193,88 +237,112 @@ func (m *ListModel) filterItems() {
 	if m.Cursor >= len(m.Filtered) {
 		m.Cursor = 0
 	}
+	m.fixScroll()
 }
 
 func (m ListModel) View() string {
+	if m.Width == 0 || m.Height == 0 {
+		return "Initializing..."
+	}
+
 	// 1. Header
-	header := headerStyle.Render("LINUTILS RAKESH - " + m.Title) + "\n"
+	header := headerStyle.Render("󱄅 LINUTILS RAKESH - " + m.Title)
 
-	// 2. Sidebar
-	sidebarContent := ""
-	for i, tab := range m.Tabs {
-		if i == m.ActiveTab {
-			sidebarContent += activeTabStyle.Render(">> "+tab) + "\n"
+	// 2. Sidebar (System Info) - More Width
+	bodyHeight := m.Height - 10
+	if bodyHeight < 10 {
+		bodyHeight = 10
+	}
+
+	osDisplay := m.SysInfo.OS
+	if m.SysInfo.OSVersion != "" && !strings.Contains(m.SysInfo.OS, m.SysInfo.OSVersion) {
+		osDisplay += " " + m.SysInfo.OSVersion
+	}
+
+	deDisplay := m.SysInfo.DE
+	if m.SysInfo.DEVersion != "" && !strings.Contains(m.SysInfo.DE, m.SysInfo.DEVersion) {
+		deDisplay += " " + m.SysInfo.DEVersion
+	}
+
+	sysInfoContent := fmt.Sprintf("%s\n\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
+		helpLabelStyle.Render("󰄾 SYSTEM SPECIFICATIONS"),
+		sysKeyStyle.Render("OS:  "), sysValStyle.Render(osDisplay),
+		sysKeyStyle.Render("DE:  "), sysValStyle.Render(deDisplay),
+		sysKeyStyle.Render("CPU: "), sysValStyle.Render(m.SysInfo.CPU),
+		sysKeyStyle.Render("RAM: "), sysValStyle.Render(m.SysInfo.RAM),
+		sysKeyStyle.Render("DISK:"), sysValStyle.Render(m.SysInfo.Disk),
+		sysKeyStyle.Render("GPU: "), sysValStyle.Render(m.SysInfo.GPU),
+	)
+	
+	sidebar := sidebarStyle.
+		Height(bodyHeight).
+		Render(sysInfoContent)
+
+	// 3. Main Content (Presets)
+	listContent := helpLabelStyle.Render("DESKTOP PRESETS") + "\n\n"
+	
+	visibleHeight := bodyHeight - 4
+	end := m.ScrollOffset + visibleHeight
+	if end > len(m.Filtered) {
+		end = len(m.Filtered)
+	}
+
+	for i := m.ScrollOffset; i < end; i++ {
+		idx := m.Filtered[i]
+		item := m.Items[idx]
+		
+		// Selection indicator
+		checked := "○"
+		if item.Selected {
+			checked = lipgloss.NewStyle().Foreground(successColor).Render("●")
+		}
+
+		// Cursor indicator and item text
+		line := fmt.Sprintf(" %s %s", checked, item.Name)
+		
+		if m.Cursor == i {
+			listContent += cursorItemStyle.Width(m.Width - 55).Render(""+line) + "\n"
 		} else {
-			sidebarContent += tabStyle.Render("   "+tab) + "\n"
-		}
-	}
-
-	sidebarContent += "\n" + sysKeyStyle.Render("--- SYSTEM ---") + "\n"
-	sidebarContent += fmt.Sprintf("%s %s\n", sysKeyStyle.Render("OS:"), sysValStyle.Render(m.SysInfo.OS))
-	sidebarContent += fmt.Sprintf("%s %s\n", sysKeyStyle.Render("DE:"), sysValStyle.Render(m.SysInfo.DE))
-	sidebarContent += fmt.Sprintf("%s %s\n", sysKeyStyle.Render("CPU:"), sysValStyle.Render(m.SysInfo.CPU))
-	sidebarContent += fmt.Sprintf("%s %s\n", sysKeyStyle.Render("RAM:"), sysValStyle.Render(m.SysInfo.RAM))
-	sidebarContent += fmt.Sprintf("%s %s\n", sysKeyStyle.Render("DISK:"), sysValStyle.Render(m.SysInfo.Disk))
-	sidebarContent += fmt.Sprintf("%s %s\n", sysKeyStyle.Render("GPU:"), sysValStyle.Render(m.SysInfo.GPU))
-
-	sidebar := sidebarStyle.Render(sidebarContent)
-
-	// 3. Main Content
-	mainContent := ""
-	mainContent += fmt.Sprintf("%s %s\n\n", sysKeyStyle.Render("SEARCH"), m.SearchInput.View())
-
-	if len(m.Filtered) == 0 {
-		mainContent += "No items found.\n"
-	} else {
-		for i, idx := range m.Filtered {
-			item := m.Items[idx]
-			cursor := " "
-			if m.Cursor == i {
-				cursor = ">"
-			}
-
-			checked := "[ ]"
 			if item.Selected {
-				checked = "[*]"
-			}
-
-			line := fmt.Sprintf("%s %s %s", cursor, checked, item.Name)
-			if m.Cursor == i {
-				mainContent += activeTabStyle.Render(line) + "\n"
+				listContent += selectedItemStyle.Render(" "+line) + "\n"
 			} else {
-				mainContent += tabStyle.Render(line) + "\n"
+				listContent += "  " + line + "\n"
 			}
 		}
 	}
 
-	main := mainContentStyle.Render(mainContent)
+	main := mainContentStyle.
+		Height(bodyHeight).
+		Width(m.Width - 48).
+		Render(listContent)
 
 	// Combine Sidebar and Main
 	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, main)
 
 	// 4. Footer
-	footer := "\n"
+	footerContent := ""
 	if len(m.Filtered) > 0 && m.Cursor < len(m.Filtered) {
 		item := m.Items[m.Filtered[m.Cursor]]
 		desc := item.Description
-		if desc == "" {
-			desc = item.Category + " - " + item.Name
+		// Truncate description if too long
+		if len(desc) > m.Width-15 {
+			desc = desc[:m.Width-18] + "..."
 		}
-		footer += fmt.Sprintf("%s %s\n", helpLabelStyle.Render("DESC:"), desc)
+		footerContent += fmt.Sprintf("%s %s\n", helpLabelStyle.Render("󰛨 DESC:"), desc)
 	}
 	
-	footer += "\n" + helpLabelStyle.Render("COMMANDS:") + "\n"
-	footer += fmt.Sprintf("%s Quit  %s Navigate  %s Select  %s Install  %s Remove  %s Tab Navigation\n",
+	commands := fmt.Sprintf("%s Quit  %s Navigate  %s Select  %s Install",
 		helpKeyStyle.Render("[q]"),
 		helpKeyStyle.Render("[j/k]"),
 		helpKeyStyle.Render("[Space]"),
-		helpKeyStyle.Render("[Enter/i]"),
-		helpKeyStyle.Render("[r]"),
-		helpKeyStyle.Render("[Tab/Shift+Tab]"),
+		helpKeyStyle.Render("[Enter]"),
 	)
+	
+	footer := footerStyle.Width(m.Width - 4).Render(footerContent + commands)
 
-	return header + body + footer
+	return lipgloss.JoinVertical(lipgloss.Left, header, body, footer)
 }
+
 
 func RunListUI(title string, items []ListItem) (string, []ListItem, error) {
 	return RunListUIWithDesc(title, "", items)

@@ -5,8 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
-	"github.com/charmbracelet/huh"
 	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
 )
 
@@ -43,16 +43,48 @@ func SetupDotfiles(manager pkgmanager.PackageManager) error {
 		cmd.Run()
 	}
 
-	// 3. List directories for stowing
+	// 3. Filter directories for stowing
 	entries, err := os.ReadDir(dotfilesDir)
 	if err != nil {
 		return fmt.Errorf("failed to read dotfiles directory: %v", err)
 	}
 
+	// Programs to stow (excluding WMs like i3, miracle-wm)
+	stowWhitelist := map[string]bool{
+		"alacritty": true, "bashrc": true, "btop": true, "fastfetch": true,
+		"gtk": true, "ideavim": true, "mako": true, "nvim": true,
+		"picom": true, "qt": true, "rofi": true, "scripts": true,
+		"starship": true, "swayosd": true, "ulauncher": true, "uwsm": true,
+		"vim": true, "waybar": true, "wofi": true, "desktop": true,
+	}
+
+	hyprVersion := getHyprlandVersion()
+	isLuaVersion := isVersionGreaterOrEqual(hyprVersion, "0.55")
+
 	var folders []string
 	for _, entry := range entries {
-		if entry.IsDir() && entry.Name()[0] != '.' && entry.Name() != "kitty" {
-			folders = append(folders, entry.Name())
+		name := entry.Name()
+		if !entry.IsDir() || name[0] == '.' || name == "kitty" {
+			continue
+		}
+
+		// Handle Hyprland versioning
+		if name == "hyprland-lua" {
+			if isLuaVersion {
+				folders = append(folders, name)
+			}
+			continue
+		}
+		if name == "hyprland" {
+			if !isLuaVersion {
+				folders = append(folders, name)
+			}
+			continue
+		}
+
+		// Check against whitelist
+		if stowWhitelist[name] {
+			folders = append(folders, name)
 		}
 	}
 
@@ -61,36 +93,14 @@ func SetupDotfiles(manager pkgmanager.PackageManager) error {
 		return nil
 	}
 
-	// 4. Select folders to stow
-	var selectedFolders []string
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewMultiSelect[string]().
-				Title("Select folders to stow").
-				Description("These will be symlinked to your home directory.").
-				Options(huh.NewOptions(folders...)...).
-				Value(&selectedFolders),
-		),
-	)
-
-	if err := form.Run(); err != nil {
-		return err
-	}
-
-	if len(selectedFolders) == 0 {
-		fmt.Println("No folders selected for stowing.")
-		return nil
-	}
-
-	// 5. Run Stow
-	fmt.Println("Stowing selected configurations...")
-	for _, folder := range selectedFolders {
+	// 4. Automated Stow (stow all found folders)
+	fmt.Printf("Automating stowing of folders: %v\n", folders)
+	for _, folder := range folders {
 		fmt.Printf("Stowing %s...\n", folder)
 		
-		// Pre-stow cleanup to handle auto-created directories (like Hyprland)
+		// Pre-stow cleanup
 		prepareForStow(home, dotfilesDir, folder)
 
-		// stow -v -R -t ~ folder
 		cmd := exec.Command("stow", "-v", "-R", "-t", home, folder)
 		cmd.Dir = dotfilesDir
 		cmd.Stdout = os.Stdout
@@ -104,6 +114,55 @@ func SetupDotfiles(manager pkgmanager.PackageManager) error {
 	return nil
 }
 
+func getHyprlandVersion() string {
+	cmd := exec.Command("hyprland", "--version")
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	// Typical output: "Hyprland, version 0.41.2 (34608c0...)"
+	return string(out)
+}
+
+// isVersionGreaterOrEqual compares a version string (like "0.41.2") against a target (like "0.55")
+func isVersionGreaterOrEqual(versionStr, target string) bool {
+	if versionStr == "" {
+		return true // Default to latest if not found/detectable during fresh install
+	}
+
+	// Simple extraction: look for digits and dots
+	var v string
+	for _, part := range strings.Fields(versionStr) {
+		if strings.Contains(part, ".") {
+			v = part
+			break
+		}
+	}
+
+	if v == "" {
+		return true
+	}
+
+	// Just a simple string comparison for "0.55" vs "0.xx" might work if we assume 0.x format
+	// But let's do a slightly better check
+	parts := strings.Split(v, ".")
+	targetParts := strings.Split(target, ".")
+
+	for i := 0; i < len(parts) && i < len(targetParts); i++ {
+		var pv, tv int
+		fmt.Sscanf(parts[i], "%d", &pv)
+		fmt.Sscanf(targetParts[i], "%d", &tv)
+		if pv > tv {
+			return true
+		}
+		if pv < tv {
+			return false
+		}
+	}
+	return len(parts) >= len(targetParts)
+}
+
+
 // prepareForStow checks the structure inside ~/.dotfiles/<folder>
 // If it maps to a directory in ~/.config (e.g., ~/.config/hypr) that already exists,
 // it deletes the contents of the target directory so stow can link individual files
@@ -115,30 +174,23 @@ func prepareForStow(home, dotfilesDir, folder string) {
 		return // Not a standard .config stow package, skip cleanup
 	}
 
-	// Read directories inside ~/.dotfiles/<folder>/.config/
+	// Read directories/files inside ~/.dotfiles/<folder>/.config/
 	entries, err := os.ReadDir(sourceConfigPath)
 	if err != nil {
 		return
 	}
 
 	for _, entry := range entries {
-		if entry.IsDir() {
-			targetDir := filepath.Join(home, ".config", entry.Name())
-			// Check if target directory already exists and is not a symlink
-			if info, err := os.Lstat(targetDir); err == nil {
-				if info.Mode()&os.ModeSymlink == 0 && info.IsDir() {
-					fmt.Printf("  Cleaning up existing directory to allow stowing: %s\n", targetDir)
-					// Rename to .bak to be safe, removing old bak if needed
-					bakDir := targetDir + ".bak"
-					os.RemoveAll(bakDir)
-					if err := os.Rename(targetDir, bakDir); err != nil {
-						// If rename fails (e.g., cross-device or permission), try to remove
-						os.RemoveAll(targetDir)
-					}
-					// Recreate empty directory so stow links files inside it
-					os.MkdirAll(targetDir, 0755)
-				}
-			}
+		targetPath := filepath.Join(home, ".config", entry.Name())
+		// Check if target exists
+		if _, err := os.Lstat(targetPath); err == nil {
+			fmt.Printf("  Removing existing entry to allow stowing: %s\n", targetPath)
+			os.RemoveAll(targetPath)
 		}
+		
+		// If it's a directory in the source, we might want to recreate the parent 
+		// if we were stowing deep, but stow -t ~ usually handles the link creation.
+		// However, the previous logic recreated the directory. 
+		// If the user wants a clean stow, removing and letting stow handle it is usually better.
 	}
 }

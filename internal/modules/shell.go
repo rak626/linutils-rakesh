@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/charmbracelet/huh"
 	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
 )
 
@@ -29,39 +28,27 @@ func SetupShell(manager pkgmanager.PackageManager) error {
 		return fmt.Errorf("failed to setup shell RC: %v", err)
 	}
 
-	// 3. Optional configurations from dotfiles
+	// 3. Automated configurations from dotfiles
 	home, _ := os.UserHomeDir()
 	dotfilesDir := filepath.Join(home, ".dotfiles")
 
 	// Starship config
 	starshipDot := filepath.Join(dotfilesDir, "starship", "starship.toml")
 	if _, err := os.Stat(starshipDot); err == nil {
-		var confirm bool
-		huh.NewConfirm().
-			Title("Detected Starship config in ~/.dotfiles. Symlink it?").
-			Value(&confirm).
-			Run()
-		if confirm {
-			target := filepath.Join(home, ".config", "starship.toml")
-			if err := symlink(starshipDot, target); err != nil {
-				fmt.Printf("Warning: failed to symlink starship config: %v\n", err)
-			}
+		fmt.Println("Detected Starship config in ~/.dotfiles. Symlinking...")
+		target := filepath.Join(home, ".config", "starship.toml")
+		if err := symlink(starshipDot, target); err != nil {
+			fmt.Printf("Warning: failed to symlink starship config: %v\n", err)
 		}
 	}
 
 	// Fastfetch config
 	fastfetchDot := filepath.Join(dotfilesDir, "fastfetch")
 	if _, err := os.Stat(fastfetchDot); err == nil {
-		var confirm bool
-		huh.NewConfirm().
-			Title("Detected Fastfetch config in ~/.dotfiles. Symlink it?").
-			Value(&confirm).
-			Run()
-		if confirm {
-			target := filepath.Join(home, ".config", "fastfetch")
-			if err := symlink(fastfetchDot, target); err != nil {
-				fmt.Printf("Warning: failed to symlink fastfetch config: %v\n", err)
-			}
+		fmt.Println("Detected Fastfetch config in ~/.dotfiles. Symlinking...")
+		target := filepath.Join(home, ".config", "fastfetch")
+		if err := symlink(fastfetchDot, target); err != nil {
+			fmt.Printf("Warning: failed to symlink fastfetch config: %v\n", err)
 		}
 	}
 

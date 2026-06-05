@@ -23,39 +23,51 @@ var (
 )
 
 func RunInitialSetup(manager pkgmanager.PackageManager, sysInfo system.Info) error {
-	items := []tui.ListItem{
-		{Key: "fedora", Name: "Fedora Initial Setup"},
-		{Key: "debian", Name: "Debian Initial Setup"},
-		{Key: "ubuntu", Name: "Ubuntu Initial Setup"},
-		{Key: "arch", Name: "Arch Initial Setup"},
-	}
+	// If the OS is recognized, we can skip the prompt in automated/quick setup scenarios
+	// For now, we'll still prompt if RunInitialSetup is called directly, 
+	// but we can add a way to skip it.
+	// Actually, let's just make it auto-detect if sysInfo.OS matches one of our supported ones.
 
-	// Auto-select the current OS item for convenience
-	for i, item := range items {
-		if item.Key == sysInfo.OS {
-			items[i].Selected = true
+	fmt.Printf("Detected OS: %s\n", sysInfo.OS)
+	
+	switch sysInfo.OS {
+	case "fedora":
+		setupFedora(manager)
+	case "debian":
+		setupDebian(manager)
+	case "ubuntu":
+		setupUbuntu(manager)
+	case "arch":
+		setupArch(manager)
+	default:
+		// Fallback to manual selection if not detected
+		items := []tui.ListItem{
+			{Key: "fedora", Name: "Fedora Initial Setup"},
+			{Key: "debian", Name: "Debian Initial Setup"},
+			{Key: "ubuntu", Name: "Ubuntu Initial Setup"},
+			{Key: "arch", Name: "Arch Initial Setup"},
 		}
-	}
 
-	action, results, err := tui.RunListUI("OS Initial Setup", items)
-	if err != nil || action == "" {
-		return err
-	}
-
-	for _, item := range results {
-		if !item.Selected {
-			continue
+		action, results, err := tui.RunListUI("OS Initial Setup", items)
+		if err != nil || action == "" {
+			return err
 		}
 
-		switch item.Key {
-		case "fedora":
-			setupFedora(manager)
-		case "debian":
-			setupDebian(manager)
-		case "ubuntu":
-			setupUbuntu(manager)
-		case "arch":
-			setupArch(manager)
+		for _, item := range results {
+			if !item.Selected {
+				continue
+			}
+
+			switch item.Key {
+			case "fedora":
+				setupFedora(manager)
+			case "debian":
+				setupDebian(manager)
+			case "ubuntu":
+				setupUbuntu(manager)
+			case "arch":
+				setupArch(manager)
+			}
 		}
 	}
 
