@@ -11,7 +11,7 @@ Sync your entire aesthetic across **15+ applications** instantly. Selecting a th
 - **Terminals**: Alacritty, Ghostty
 - **Editors**: Neovim, Vim, Zed, VSCodium
 - **System UI**: Hyprland (Borders), i3 (Window Decos), GTK (Apps), GNOME Shell, SDDM
-- **Utilities**: Waybar, Mako, btop, Starship, Ulauncher, SwayOSD, Hyprlock
+- **Utilities**: Waybar, Mako, btop, Starship, Wofi, SwayOSD, Hyprlock
 - **Icons & Cursors**: Automated `gsettings` sync for matching icon packs and mouse pointers.
 
 ### 🛠️ System Core & Hardware

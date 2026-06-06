@@ -10,6 +10,17 @@ type InstallConfig struct {
 }
 
 var ManualInstalls = map[string]InstallConfig{
+	"zen": {
+		Name:    "Zen Browser",
+		Command: []string{"curl -fsSL https://github.com/zen-browser/updates-server/raw/refs/heads/main/install.sh | bash"},
+		Remove: []string{
+			"rm -rf ~/.tarball-installations/zen",
+			"rm -f ~/.local/bin/zen",
+			"rm -f ~/.local/share/applications/zen.desktop",
+			"rm -f ~/.local/share/applications/zen-twilight.desktop",
+		},
+		Check: "~/.local/bin/zen",
+	},
 	"github-desktop": {
 		Name: "GitHub Desktop",
 		Command: []string{

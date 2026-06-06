@@ -37,10 +37,6 @@ const (
 	FeatureFileManagers  = "File Managers (Thunar/Yazi)"
 	FeatureEditors       = "Editor Config (NVim/Vim)"
 	FeatureScripts       = "Custom Scripts"
-	FeatureThemes        = "Application Themes"
-	FeatureThemeSwitcher = "Install Global Theme Switcher"
-	FeatureThemeSetup    = "Integrate Theme Switcher with Configs"
-	FeatureThemeReset    = "Restore Original Configs (Reset Themes)"
 	FeatureGitCombined   = "Git & GitHub Setup"
 	FeatureExit          = "Exit"
 )
@@ -70,6 +66,11 @@ func RunMainMenu(sysInfo system.Info, state *MainConfig) (MainConfig, error) {
 			Description: "Automatically install all configured software, tools, and editors.",
 		})
 		items = append(items, ListItem{
+			Key:         FeatureKeybinds,
+			Name:        "GNOME Keybindings",
+			Description: "Configure variable-based GNOME keybindings (Terminal, Browser, Editor, etc.)",
+		})
+		items = append(items, ListItem{
 			Key:         FeatureExit,
 			Name:        "Exit",
 			Description: "Close the application.",
@@ -78,16 +79,21 @@ func RunMainMenu(sysInfo system.Info, state *MainConfig) (MainConfig, error) {
 		state.Items = items
 	}
 
-	_, results, err := RunListUIWithDesc("System Presets", "Select a desktop environment to configure.", state.Items)
+	action, results, err := RunListUIWithDesc("System Presets", "Select a desktop environment to configure.", state.Items)
 	if err != nil {
 		return *state, err
 	}
 
 	state.Items = results
 	state.Features = []string{}
-	for _, item := range results {
+	for i, item := range results {
 		if item.Selected {
 			state.Features = append(state.Features, item.Key)
+			// If it was a single execution via Enter (no previous Space selection),
+			// don't persist the selected state.
+			if action == "i_single" {
+				state.Items[i].Selected = false
+			}
 		}
 	}
 

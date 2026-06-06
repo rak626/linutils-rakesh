@@ -54,7 +54,7 @@ func SetupDotfiles(manager pkgmanager.PackageManager) error {
 		"alacritty": true, "bashrc": true, "btop": true, "fastfetch": true,
 		"gtk": true, "ideavim": true, "mako": true, "nvim": true,
 		"picom": true, "qt": true, "rofi": true, "scripts": true,
-		"starship": true, "swayosd": true, "ulauncher": true, "uwsm": true,
+		"starship": true, "swayosd": true, "uwsm": true,
 		"vim": true, "waybar": true, "wofi": true, "desktop": true,
 	}
 

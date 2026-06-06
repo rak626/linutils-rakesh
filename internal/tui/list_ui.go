@@ -131,6 +131,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.SearchInput.SetValue("")
 				m.filterItems()
 			} else {
+				m.Action = "back"
 				m.Finished = true
 				return m, tea.Quit
 			}
@@ -168,11 +169,24 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.SearchInput.Focus()
 				return m, nil
 			}
+		case "ctrl+v":
+			// Toggle selection for all items in the filtered list
+			allSelected := true
+			for _, idx := range m.Filtered {
+				if !m.Items[idx].Selected {
+					allSelected = false
+					break
+				}
+			}
+			for _, idx := range m.Filtered {
+				m.Items[idx].Selected = !allSelected
+			}
 		case "enter":
 			if m.SearchInput.Focused() {
 				m.SearchInput.Blur()
 			} else {
-				// Install action
+				// If no items are selected via Space, we only run the current item
+				// but we don't mark it as "Selected" in the persistent list.
 				anySelected := false
 				for _, item := range m.Items {
 					if item.Selected {
@@ -180,10 +194,16 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						break
 					}
 				}
+				
 				if !anySelected && len(m.Filtered) > 0 {
+					// We'll signal this by setting a special state or returning it
+					// For now, let's just make sure the calling code knows.
 					m.Items[m.Filtered[m.Cursor]].Selected = true
+					m.Action = "i_single" 
+				} else {
+					m.Action = "i"
 				}
-				m.Action = "i"
+				
 				m.Finished = true
 				return m, tea.Quit
 			}
@@ -331,10 +351,11 @@ func (m ListModel) View() string {
 		footerContent += fmt.Sprintf("%s %s\n", helpLabelStyle.Render("󰛨 DESC:"), desc)
 	}
 	
-	commands := fmt.Sprintf("%s Quit  %s Navigate  %s Select  %s Install",
+	commands := fmt.Sprintf("%s Quit  %s Navigate  %s Select  %s Toggle All  %s Install",
 		helpKeyStyle.Render("[q]"),
 		helpKeyStyle.Render("[j/k]"),
 		helpKeyStyle.Render("[Space]"),
+		helpKeyStyle.Render("[Ctrl+v]"),
 		helpKeyStyle.Render("[Enter]"),
 	)
 	

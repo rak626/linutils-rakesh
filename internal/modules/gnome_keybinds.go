@@ -7,8 +7,83 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rakesh/linutils-rakesh/internal/config"
 	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
+	"github.com/rakesh/linutils-rakesh/internal/tui"
 )
+
+func RunInteractiveGnomeKeybinds() error {
+	items := []tui.ListItem{
+		{Key: "default", Name: "Default Settings", Description: "Apply variables from your ~/.config/linutils/variables.conf file."},
+		{Key: "customize", Name: "Customize Settings", Description: "Interactively choose preferred apps for terminal, browser, editor, etc."},
+	}
+
+	action, results, err := tui.RunListUIWithDesc("GNOME Keybindings", "Choose how to configure your shortcuts.", items)
+	if err != nil {
+		return err
+	}
+
+	if action == "" || action == "back" { // User quit or pressed esc
+		return nil
+	}
+
+	var choice string
+	for _, item := range results {
+		if item.Selected {
+			choice = item.Key
+			break
+		}
+	}
+
+	switch choice {
+	case "customize":
+		return runCustomizationFlow()
+	case "default":
+		return SetupGnomeKeybinds()
+	}
+	return nil
+}
+
+func runCustomizationFlow() error {
+	vars := []string{"$terminal", "$browser", "$filemanager", "$editor", "$launcher"}
+	varNames := map[string]string{
+		"$terminal":    "Terminal Emulator",
+		"$browser":     "Web Browser",
+		"$filemanager": "File Manager",
+		"$editor":      "Code/Text Editor",
+		"$launcher":    "App Launcher",
+	}
+
+	for _, v := range vars {
+		var items []tui.ListItem
+		for _, opt := range config.VarOptions[v] {
+			items = append(items, tui.ListItem{
+				Key:         opt,
+				Name:        opt,
+				Description: "Select " + opt + " as your " + varNames[v],
+			})
+		}
+
+		action, results, err := tui.RunListUIWithDesc("Select "+varNames[v], "Choose your preferred application.", items)
+		if err != nil {
+			return err
+		}
+		if action == "" || action == "back" {
+			return nil // User cancelled
+		}
+
+		for _, item := range results {
+			if item.Selected {
+				config.UserVars[v] = item.Key
+				break
+			}
+		}
+	}
+
+	config.SaveVariables()
+	fmt.Println("\nVariables saved! Applying GNOME keybindings...")
+	return SetupGnomeKeybinds()
+}
 
 func SetupGnomeKeybinds() error {
 	if !pkgmanager.IsCommandAvailable("gsettings") {
@@ -44,6 +119,9 @@ func SetupGnomeKeybinds() error {
 	// 6. Window Management
 	fmt.Println("Setting window management shortcuts...")
 	runGsettings("set", "org.gnome.desktop.wm.keybindings", "close", "['<Super>q']")
+	
+	// Disable GNOME's default Super+D (Show Desktop) to allow it for Launcher (wofi/rofi)
+	runGsettings("set", "org.gnome.desktop.wm.keybindings", "show-desktop", "@as []")
 
 	// Remove Super+H keybind (which is to hide/minimize the window)
 	runGsettings("set", "org.gnome.desktop.wm.keybindings", "minimize", "@as []")
@@ -79,15 +157,14 @@ func SetupGnomeKeybinds() error {
 
 	runGsettings("set", "org.gnome.settings-daemon.plugins.media-keys", "custom-keybindings", "["+strings.Join(customBinds, ", ")+"]")
 
-	setupCustomBind(0, "Alacritty", "alacritty", "<Super>Return")
-	setupCustomBind(1, "Chromium", "chromium-browser --new-window", "<Super><Shift>Return")
-	setupCustomBind(2, "Files", "nautilus", "<Super>e")
-	setupCustomBind(3, "Zed", "zed", "<Super><Shift>z")
-	setupCustomBind(4, "Brave", "brave-browser --new-window", "<Super><Shift>b")
-	setupCustomBind(5, "Ulauncher", "ulauncher-toggle", "<Super>d")
-	setupCustomBind(6, "Toggle GNOME Panel", toggleScriptPath, "<Super>h")
-	setupCustomBind(7, "Github Desktop", "github-desktop", "<Super><Shift>g")
-	setupCustomBind(8, "Intellij Idea", "idea", "<Super><Shift>i")
+	setupCustomBind(0, "Terminal", config.ExpandVariables("$terminal"), "<Super>Return")
+	setupCustomBind(1, "Browser", config.ExpandVariables("$browser"), "<Super><Shift>Return")
+	setupCustomBind(2, "Files", config.ExpandVariables("$filemanager"), "<Super>e")
+	setupCustomBind(3, "Editor", config.ExpandVariables("$editor"), "<Super><Shift>z")
+	setupCustomBind(4, "Launcher", config.ExpandVariables("$launcher"), "<Super>d")
+	setupCustomBind(5, "Toggle GNOME Panel", toggleScriptPath, "<Super>h")
+	setupCustomBind(6, "Github Desktop", "github-desktop", "<Super><Shift>g")
+	setupCustomBind(7, "Intellij Idea", "idea", "<Super><Shift>i")
 
 	fmt.Println("GNOME keybindings setup complete.")
 	return nil

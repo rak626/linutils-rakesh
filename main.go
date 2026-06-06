@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/rakesh/linutils-rakesh/internal/config"
 	"github.com/rakesh/linutils-rakesh/internal/modules"
 	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
 	"github.com/rakesh/linutils-rakesh/internal/system"
@@ -13,22 +14,13 @@ import (
 )
 
 func main() {
+	config.LoadVariables()
 	sysInfo := system.GetSystemInfo()
 
 	// Check for standalone subcommands
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
-		case "theme":
-			manager, _ := pkgmanager.GetManager(sysInfo.DistroID)
-			if err := pkgmanager.ValidateSudo(); err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
-			}
-			if err := modules.RunStandaloneThemeSwitcher(manager, sysInfo); err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
-			}
-			return
+		// Add future subcommands here
 		}
 	}
 	
@@ -110,7 +102,7 @@ func main() {
 				fmt.Println("\n>>> FULL HYPRLAND SETUP COMPLETE <<<")
 
 			case tui.FeatureQuickSetup:
-				fmt.Println("\n>>> STARTING QUICK SETUP (Non-Theme) <<<")
+				fmt.Println("\n>>> STARTING QUICK SETUP <<<")
 				modules.RunInitialSetup(manager, sysInfo)
 				installBaseTools(manager, sysInfo)
 				if sysInfo.DEID == "gnome" {
@@ -151,7 +143,7 @@ func main() {
 			case tui.FeatureI3:
 				modules.SetupI3(manager, sysInfo)
 			case tui.FeatureKeybinds:
-				if err := modules.SetupGnomeKeybinds(); err != nil {
+				if err := modules.RunInteractiveGnomeKeybinds(); err != nil {
 					fmt.Printf("Error setting up keybindings: %v\n", err)
 				}
 			case tui.FeatureGnomePerf:
@@ -182,14 +174,6 @@ func main() {
 				modules.SetupEditors(manager)
 			case tui.FeatureScripts:
 				modules.InstallCustomScripts(manager)
-			case tui.FeatureThemes:
-				modules.ApplyThemes(manager)
-			case tui.FeatureThemeSwitcher:
-				modules.InstallThemeSwitcher(manager)
-			case tui.FeatureThemeSetup:
-				modules.IntegrateThemeSwitcher()
-			case tui.FeatureThemeReset:
-				modules.RestoreThemeDefaults(sysInfo)
 			}
 		}
 
@@ -204,7 +188,7 @@ func installBaseTools(manager pkgmanager.PackageManager, sysInfo system.Info) {
 	
 	basePkgs := []string{
 		"neovim", "grep", "ripgrep", "fzf", "zoxide", "curl", "wget", 
-		"git", "vim", "micro", "btop", "htop", "nvtop", "fastfetch", "alacritty", "jq",
+		"git", "vim", "micro", "btop", "htop", "nvtop", "fastfetch", "alacritty", "jq", "wofi",
 	}
 
 	if sysInfo.OS == "debian" || sysInfo.OS == "ubuntu" {
