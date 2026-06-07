@@ -266,7 +266,8 @@ func (m ListModel) View() string {
 	}
 
 	// 1. Header
-	header := headerStyle.Render("󱄅 LINUTILS RAKESH - " + m.Title)
+	title := strings.ToUpper(m.Title)
+	header := headerStyle.Render("󱄅 LINUTILS RAKESH  󰁔  " + title)
 
 	// 2. Sidebar (System Info) - More Width
 	bodyHeight := m.Height - 10
@@ -284,7 +285,9 @@ func (m ListModel) View() string {
 		deDisplay += " " + m.SysInfo.DEVersion
 	}
 
-	sysInfoContent := fmt.Sprintf("%s\n\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
+	sysInfoContent := fmt.Sprintf("%s\n%s\n\n%s\n\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
+		helpLabelStyle.Render("󰄾 CURRENT TASK"),
+		lipgloss.NewStyle().Foreground(accentColor).Bold(true).Render(m.Title),
 		helpLabelStyle.Render("󰄾 SYSTEM SPECIFICATIONS"),
 		sysKeyStyle.Render("OS:  "), sysValStyle.Render(osDisplay),
 		sysKeyStyle.Render("DE:  "), sysValStyle.Render(deDisplay),
@@ -299,7 +302,11 @@ func (m ListModel) View() string {
 		Render(sysInfoContent)
 
 	// 3. Main Content (Presets)
-	listContent := helpLabelStyle.Render("DESKTOP PRESETS") + "\n\n"
+	boxTitle := "SELECTION"
+	if m.Title != "" {
+		boxTitle = m.Title
+	}
+	listContent := helpLabelStyle.Render("󰄾 " + strings.ToUpper(boxTitle)) + "\n\n"
 	
 	visibleHeight := bodyHeight - 4
 	end := m.ScrollOffset + visibleHeight

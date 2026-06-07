@@ -45,13 +45,14 @@ func RunInteractiveGnomeKeybinds() error {
 }
 
 func runCustomizationFlow() error {
-	vars := []string{"$terminal", "$browser", "$filemanager", "$editor", "$launcher"}
+	vars := []string{"$terminal", "$browser", "$secondary_browser", "$filemanager", "$editor", "$launcher"}
 	varNames := map[string]string{
-		"$terminal":    "Terminal Emulator",
-		"$browser":     "Web Browser",
-		"$filemanager": "File Manager",
-		"$editor":      "Code/Text Editor",
-		"$launcher":    "App Launcher",
+		"$terminal":          "Terminal Emulator",
+		"$browser":           "Default Web Browser",
+		"$secondary_browser": "Secondary Web Browser",
+		"$filemanager":       "File Manager",
+		"$editor":            "Code/Text Editor",
+		"$launcher":          "App Launcher",
 	}
 
 	for _, v := range vars {
@@ -153,18 +154,22 @@ func SetupGnomeKeybinds() error {
 		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/'",
 		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom7/'",
 		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom8/'",
+		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom9/'",
+		"'/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom10/'",
 	}
 
 	runGsettings("set", "org.gnome.settings-daemon.plugins.media-keys", "custom-keybindings", "["+strings.Join(customBinds, ", ")+"]")
 
 	setupCustomBind(0, "Terminal", config.ExpandVariables("$terminal"), "<Super>Return")
-	setupCustomBind(1, "Browser", config.ExpandVariables("$browser"), "<Super><Shift>Return")
+	setupCustomBind(1, "Default Browser", config.ExpandVariables("$browser"), "<Super><Shift>Return")
 	setupCustomBind(2, "Files", config.ExpandVariables("$filemanager"), "<Super>e")
 	setupCustomBind(3, "Editor", config.ExpandVariables("$editor"), "<Super><Shift>z")
 	setupCustomBind(4, "Launcher", config.ExpandVariables("$launcher"), "<Super>d")
 	setupCustomBind(5, "Toggle GNOME Panel", toggleScriptPath, "<Super>h")
 	setupCustomBind(6, "Github Desktop", "github-desktop", "<Super><Shift>g")
 	setupCustomBind(7, "Intellij Idea", "idea", "<Super><Shift>i")
+	setupCustomBind(9, "Secondary Browser", config.ExpandVariables("$secondary_browser"), "<Super><Alt>Return")
+	setupCustomBind(10, "Brave Browser", "brave-browser", "<Super><Shift>b")
 
 	fmt.Println("GNOME keybindings setup complete.")
 	return nil

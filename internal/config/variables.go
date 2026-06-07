@@ -9,19 +9,21 @@ import (
 )
 
 var UserVars = map[string]string{
-	"$browser":     "chromium-browser --new-window",
-	"$terminal":    "alacritty",
-	"$editor":      "zed",
-	"$filemanager": "nautilus",
-	"$launcher":    "wofi --show drun",
+	"$browser":           "chromium-browser",
+	"$secondary_browser": "zen",
+	"$terminal":          "alacritty",
+	"$editor":            "zed",
+	"$filemanager":       "nautilus",
+	"$launcher":          "wofi --show drun",
 }
 
 var VarOptions = map[string][]string{
-	"$browser":     {"zen", "chromium-browser --new-window", "brave-browser --new-window", "firefox", "google-chrome-stable"},
-	"$terminal":    {"alacritty", "kitty", "ghostty", "gnome-terminal"},
-	"$editor":      {"zed", "code", "nvim", "vim", "micro"},
-	"$filemanager": {"nautilus", "thunar", "dolphin"},
-	"$launcher":    {"rofi -show drun", "wofi --show drun"},
+	"$browser":           {"chromium-browser", "zen", "brave-browser", "firefox", "google-chrome-stable"},
+	"$secondary_browser": {"zen", "chromium-browser", "brave-browser", "firefox", "google-chrome-stable"},
+	"$terminal":          {"alacritty", "kitty", "ghostty", "gnome-terminal"},
+	"$editor":            {"zed", "code", "nvim", "vim", "micro"},
+	"$filemanager":       {"nautilus", "thunar", "dolphin"},
+	"$launcher":          {"rofi -show drun", "wofi --show drun"},
 }
 
 func LoadVariables() {
@@ -66,7 +68,8 @@ func LoadVariables() {
 func saveDefaultVariables(path string) {
 	content := "# Linutils Variable Configuration\n"
 	content += "# Format: $variable = value\n\n"
-	content += "$browser = chromium-browser --new-window\n"
+	content += "$browser = chromium-browser\n"
+	content += "$secondary_browser = zen\n"
 	content += "$terminal = alacritty\n"
 	content += "$editor = zed\n"
 	content += "$filemanager = nautilus\n"
@@ -84,7 +87,7 @@ func SaveVariables() {
 	content += "# Format: $variable = value\n\n"
 	
 	// Order keys for consistency
-	keys := []string{"$browser", "$terminal", "$editor", "$filemanager", "$launcher"}
+	keys := []string{"$browser", "$secondary_browser", "$terminal", "$editor", "$filemanager", "$launcher"}
 	for _, k := range keys {
 		content += fmt.Sprintf("%s = %s\n", k, UserVars[k])
 	}
