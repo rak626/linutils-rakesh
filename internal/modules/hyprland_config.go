@@ -3,7 +3,7 @@ package modules
 import (
 	"fmt"
 
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
 )
 
 // ConfigureHyprlandExtras handles the installation of additional Hyprland tools.

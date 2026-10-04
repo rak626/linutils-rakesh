@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
 )
 
 type EnvConfigurator interface {

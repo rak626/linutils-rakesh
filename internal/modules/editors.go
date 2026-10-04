@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
 )
 
 // SetupEditors offers to install and configure Neovim, Vim, and IdeaVim.

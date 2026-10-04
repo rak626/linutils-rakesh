@@ -1,74 +1,79 @@
-# 🚀 Linutils Rakesh
+# linutils-rakesh
 
-A powerful, TUI-based Linux system orchestrator and global theme switcher inspired by the **Omarchy** aesthetic. Built with Go and the Charmbracelet `huh` library, this tool transforms a fresh Linux installation into a fully-configured, high-performance workstation with a single command.
+A simple TUI-based Linux setup and restore tool for people who distro-hop.
+Built with Go, Bubbletea and Huh. Gruvbox Dark Medium theme, ASCII-only
+(normal terminal font, no Nerd Font required).
 
----
+It turns a fresh install — or a messed-up system — back into *your* system:
+base packages, desktop environment, dotfiles (via GNU Stow), GNOME
+performance tweaks + keybindings, shell/fonts/editors, and your software
+catalog. Backups are plain git commits in your dotfiles repo.
 
-## ✨ Features
+## Menu
 
-### 🎨 The Ultimate Theme Orchestrator
-Sync your entire aesthetic across **15+ applications** instantly. Selecting a theme (like *Rose Pine*, *Everforest*, or *Catppuccin*) cascades your colors to:
-- **Terminals**: Alacritty, Ghostty
-- **Editors**: Neovim, Vim, Zed, VSCodium
-- **System UI**: Hyprland (Borders), i3 (Window Decos), GTK (Apps), GNOME Shell, SDDM
-- **Utilities**: Waybar, Mako, btop, Starship, Wofi, SwayOSD, Hyprlock
-- **Icons & Cursors**: Automated `gsettings` sync for matching icon packs and mouse pointers.
+| Entry | What it does |
+|---|---|
+| Fresh Install | New system: OS setup, base tools, desktop (GNOME/i3/Hyprland), dotfiles, perf + keybinds, Git + GitHub auth, software picker. Asks every time. |
+| Restore My Settings | Re-applies dotfiles, keybinds and perf. Idempotent — safe to re-run when things break. Skips OS setup and GitHub auth. |
+| Backup Now to Git | Dumps GNOME `dconf` + package list into the dotfiles repo and pushes. History is git log. |
+| Keybindings | Pick terminal/browser/editor/filemanager/launcher, then apply GNOME keybinds. |
+| Software Picker | Choose from the catalog. Nothing is auto-installed. |
 
-### 🛠️ System Core & Hardware
-- **Arch + Hyprland Focus**: Automated setup for Hyprland with specific **NVIDIA/DKMS** performance optimizations.
-- **TUI Hardware Managers**: Keyboard-driven Bluetooth and Audio selection (Omarchy-style).
-- **Package Management**: Cross-distro abstraction (Apt, DNF, Pacman) with seamless **AUR integration** (yay/paru).
-- **Initial Setup**: One-click optimization (DNF speedup, Reflector, DNS config, Debloating).
+Extras (Bluetooth, SDDM, icons, scripts, NVIDIA, …) are hidden by default —
+nothing is deleted. Show them with `LINUTILS_ADVANCED=1`.
 
-### 📦 Software & Workflow
-- **Categorized Installer**: Browse and install developer tools, AI agents, and Flatpaks.
-- **Zero-Config Integration**: One-click tool to "plumb" the theme switcher into your existing `.lua` and `.conf` files.
-- **Custom Scripts**: Deploy pre-configured utility scripts for screenshots, power menus, and more.
+## OS x Desktop support
 
----
+| | GNOME (primary) | i3 | Hyprland |
+|---|---|---|---|
+| Arch | yes | yes | yes |
+| Fedora | yes | yes | yes |
+| Ubuntu / Debian | yes | yes | blocked (message shown) |
 
-## 🚀 Quick Start
+Package managers are abstracted (`apt`, `dnf`, `pacman` + AUR via `yay`).
 
-Run the installer directly from the web:
+## Quick start
 
 ```bash
+# one-line installer (downloads the latest release binary)
 curl -fsSL https://raw.githubusercontent.com/rak626/linutils-rakesh/main/install.sh | bash
-```
 
-Alternatively, build from source:
-
-```bash
+# or build from source (Go 1.26+)
 git clone https://github.com/rak626/linutils-rakesh.git
 cd linutils-rakesh
-go build -o linutils-rakesh main.go
+go build -o linutils-rakesh .
 ./linutils-rakesh
 ```
 
----
+Keys: `j/k` move, `Space` select, `Enter` run, `/` search, `?` help,
+`q` / `Esc` back (on the main menu `q` quits the app).
 
-## ⌨️ Standalone Theme Switcher
+## Configuration (forks welcome)
 
-Once installed, you can launch the theme switcher instantly via a keybind (default: `Super + Alt + T`) or via CLI:
+| Setting | Default | Override |
+|---|---|---|
+| Dotfiles repo | `https://github.com/rak626/dotfiles.git` | `DOTFILES_REPO` env var |
+| Fonts repo | `https://github.com/rak626/fonts.git` | `FONTS_REPO` env var |
+| App choices (`$terminal`, `$browser`, …) | `~/.config/linutils/variables.conf` | asked interactively every run |
+| Repo cloner list | none (opt-in) | copy `examples/repos.example.conf` to `~/.config/linutils/repos.conf` |
 
-```bash
-linutils-rakesh theme
-```
+Conflicting `~/.config` entries are moved to `~/.config.bak` before
+stowing — never silently deleted.
 
----
+## Architecture
 
-## 🏗️ Architecture
+- `main.go` — menu loop + Fresh/Restore flows
+- `internal/tui/` — Bubbletea list UI, Gruvbox theme (`theme.go`), main menu (`form.go`)
+- `internal/system/` — distro/DE/hardware detection
+- `internal/pkgmanager/` — `apt` / `dnf` / `pacman` abstraction
+- `internal/modules/` — one file per task (setup, dotfiles, backup, software picker, …)
+- `internal/config/` — variables + software catalog (`installs.go`)
 
-- **Go**: Core logic and orchestration.
-- **Huh (Charmbracelet)**: Beautiful, accessible TUI components.
-- **Environment Aware**: Detects your DE (GNOME, Hyprland, i3) and applies environment-specific tweaks.
-- **Stateless/Dynamic**: Generates `active_theme` files that your configs source, ensuring live-reloading without restarts.
+## Contributing
 
----
+PRs welcome. Run `go build ./...` and `go vet ./...` before pushing.
+CI checks both. Releases are cut by pushing a `v*` tag.
 
-## 🤝 Contributing
+## License
 
-Community themes are welcome! You can import them directly from the TUI by pasting a GitHub URL.
-
----
-
-> *"Where system configuration meets aesthetic perfection—effortless orchestration for the modern Linux pioneer."*
+MIT — see [LICENSE](LICENSE).

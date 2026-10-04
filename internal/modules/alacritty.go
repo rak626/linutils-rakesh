@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/charmbracelet/huh"
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
 )
 
 // SetupAlacritty installs Alacritty and handles its configuration.

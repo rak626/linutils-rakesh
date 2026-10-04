@@ -6,7 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/charmbracelet/huh"
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
 )
 
 func SetupGitHub(manager pkgmanager.PackageManager) error {

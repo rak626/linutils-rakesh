@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
-	"github.com/rakesh/linutils-rakesh/internal/system"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/system"
 )
 
 // SetupBluetoothAndAudio implements Omarchy-style Bluetooth & Audio Management.

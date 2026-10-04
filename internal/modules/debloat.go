@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/huh"
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
-	"github.com/rakesh/linutils-rakesh/internal/system"
-	"github.com/rakesh/linutils-rakesh/internal/tui"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/system"
+	"github.com/rak626/linutils-rakesh/internal/tui"
 )
 
 func DebloatGnome(manager pkgmanager.PackageManager, sysInfo system.Info) error {

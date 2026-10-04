@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rakesh/linutils-rakesh/internal/config"
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
-	"github.com/rakesh/linutils-rakesh/internal/tui"
+	"github.com/rak626/linutils-rakesh/internal/config"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/tui"
 )
 
 func RunInteractiveGnomeKeybinds() error {
@@ -23,7 +23,7 @@ func RunInteractiveGnomeKeybinds() error {
 		return err
 	}
 
-	if action == "" || action == "back" { // User quit or pressed esc
+	if action == "" || action == "back" || action == "quit" { // User quit or pressed esc
 		return nil
 	}
 
@@ -69,7 +69,7 @@ func runCustomizationFlow() error {
 		if err != nil {
 			return err
 		}
-		if action == "" || action == "back" {
+		if action == "" || action == "back" || action == "quit" {
 			return nil // User cancelled
 		}
 
@@ -120,7 +120,7 @@ func SetupGnomeKeybinds() error {
 	// 6. Window Management
 	fmt.Println("Setting window management shortcuts...")
 	runGsettings("set", "org.gnome.desktop.wm.keybindings", "close", "['<Super>q']")
-	
+
 	// Disable GNOME's default Super+D (Show Desktop) to allow it for Launcher (wofi/rofi)
 	runGsettings("set", "org.gnome.desktop.wm.keybindings", "show-desktop", "@as []")
 

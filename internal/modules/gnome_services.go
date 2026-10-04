@@ -3,7 +3,7 @@ package modules
 import (
 	"fmt"
 	"os/exec"
-	"github.com/rakesh/linutils-rakesh/internal/system"
+	"github.com/rak626/linutils-rakesh/internal/system"
 )
 
 var BloatServices = []string{

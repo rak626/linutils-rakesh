@@ -3,8 +3,8 @@ package modules
 import (
 	"fmt"
 
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
-	"github.com/rakesh/linutils-rakesh/internal/system"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/system"
 )
 
 func SetupI3(manager pkgmanager.PackageManager, sysInfo system.Info) error {

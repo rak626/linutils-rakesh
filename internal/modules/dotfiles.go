@@ -7,10 +7,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
 )
 
-const dotfilesRepo = "https://github.com/rak626/dotfiles.git"
+const defaultDotfilesRepo = "https://github.com/rak626/dotfiles.git"
+
+// DotfilesRepo returns the dotfiles repo URL, overridable via DOTFILES_REPO
+// so forks can point at their own repo without editing code.
+func DotfilesRepo() string {
+	if v := os.Getenv("DOTFILES_REPO"); v != "" {
+		return v
+	}
+	return defaultDotfilesRepo
+}
 
 func SetupDotfiles(manager pkgmanager.PackageManager) error {
 	fmt.Println("\n--- Dotfiles Sync (GNU Stow) ---")
@@ -29,7 +38,7 @@ func SetupDotfiles(manager pkgmanager.PackageManager) error {
 	// 2. Clone or Pull Dotfiles
 	if _, err := os.Stat(dotfilesDir); os.IsNotExist(err) {
 		fmt.Printf("Cloning dotfiles to %s...\n", dotfilesDir)
-		cmd := exec.Command("git", "clone", dotfilesRepo, dotfilesDir)
+		cmd := exec.Command("git", "clone", DotfilesRepo(), dotfilesDir)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
@@ -49,13 +58,14 @@ func SetupDotfiles(manager pkgmanager.PackageManager) error {
 		return fmt.Errorf("failed to read dotfiles directory: %v", err)
 	}
 
-	// Programs to stow (excluding WMs like i3, miracle-wm)
+	// Programs to stow — i3 + hyprland included (user uses them).
 	stowWhitelist := map[string]bool{
 		"alacritty": true, "bashrc": true, "btop": true, "fastfetch": true,
 		"gtk": true, "ideavim": true, "mako": true, "nvim": true,
 		"picom": true, "qt": true, "rofi": true, "scripts": true,
 		"starship": true, "swayosd": true, "uwsm": true,
 		"vim": true, "waybar": true, "wofi": true, "desktop": true,
+		"i3": true, "hyprland": true, "hyprland-lua": true,
 	}
 
 	hyprVersion := getHyprlandVersion()
@@ -97,7 +107,7 @@ func SetupDotfiles(manager pkgmanager.PackageManager) error {
 	fmt.Printf("Automating stowing of folders: %v\n", folders)
 	for _, folder := range folders {
 		fmt.Printf("Stowing %s...\n", folder)
-		
+
 		// Pre-stow cleanup
 		prepareForStow(home, dotfilesDir, folder)
 
@@ -162,11 +172,8 @@ func isVersionGreaterOrEqual(versionStr, target string) bool {
 	return len(parts) >= len(targetParts)
 }
 
-
-// prepareForStow checks the structure inside ~/.dotfiles/<folder>
-// If it maps to a directory in ~/.config (e.g., ~/.config/hypr) that already exists,
-// it deletes the contents of the target directory so stow can link individual files
-// without complaining about existing directories or trying to link the parent.
+// prepareForStow moves conflicting ~/.config entries to ~/.config.bak
+// instead of deleting them, so Restore is safe and reversible.
 func prepareForStow(home, dotfilesDir, folder string) {
 	// Most dotfiles are stowed to ~/.config. We check if .config exists in the stow package.
 	sourceConfigPath := filepath.Join(dotfilesDir, folder, ".config")
@@ -180,17 +187,24 @@ func prepareForStow(home, dotfilesDir, folder string) {
 		return
 	}
 
+	bakDir := filepath.Join(home, ".config.bak")
 	for _, entry := range entries {
 		targetPath := filepath.Join(home, ".config", entry.Name())
-		// Check if target exists
-		if _, err := os.Lstat(targetPath); err == nil {
-			fmt.Printf("  Removing existing entry to allow stowing: %s\n", targetPath)
-			os.RemoveAll(targetPath)
+		// Check if target exists and is not already a symlink to our dotfiles
+		if fi, err := os.Lstat(targetPath); err == nil {
+			if fi.Mode()&os.ModeSymlink != 0 {
+				link, _ := os.Readlink(targetPath)
+				if strings.Contains(link, dotfilesDir) {
+					continue // already stowed, nothing to do
+				}
+			}
+			os.MkdirAll(bakDir, 0755)
+			bakPath := filepath.Join(bakDir, entry.Name())
+			fmt.Printf("  Moving existing entry to backup: %s -> %s\n", targetPath, bakPath)
+			os.RemoveAll(bakPath)
+			if err := os.Rename(targetPath, bakPath); err != nil {
+				fmt.Printf("  Warning: could not back up %s: %v\n", targetPath, err)
+			}
 		}
-		
-		// If it's a directory in the source, we might want to recreate the parent 
-		// if we were stowing deep, but stow -t ~ usually handles the link creation.
-		// However, the previous logic recreated the directory. 
-		// If the user wants a clean stow, removing and letting stow handle it is usually better.
 	}
 }

@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -8,18 +9,55 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/huh"
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
 )
 
-var myRepos = map[string]string{
-	"DSA Tracker":      "git@github.com:rak626/dsa-tracker.git",
-	"Java Learning":    "git@github.com:rak626/java-learning.git",
-	"Obsidian Vault":   "git@github.com:rak626/obsidian-vault.git",
-	"Rakesh Portfolio": "git@github.com:rak626/rakesh-portfolio.git",
+// repos.conf format (one per line): Display Name=git-url
+// Example: My Project=git@github.com:myuser/my-project.git
+// Copy examples/repos.example.conf to ~/.config/linutils/repos.conf to use.
+func loadRepos() map[string]string {
+	repos := map[string]string{}
+	home, _ := os.UserHomeDir()
+	path := filepath.Join(home, ".config", "linutils", "repos.conf")
+	f, err := os.Open(path)
+	if err != nil {
+		return repos
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		name := strings.TrimSpace(parts[0])
+		url := strings.TrimSpace(parts[1])
+		if name != "" && url != "" {
+			repos[name] = url
+		}
+	}
+	return repos
 }
 
 func CloneRepos(manager pkgmanager.PackageManager) error {
 	fmt.Println("\n--- GitHub Repo Cloner ---")
+
+	myRepos := loadRepos()
+	if len(myRepos) == 0 {
+		home, _ := os.UserHomeDir()
+		fmt.Printf("No repos configured. Copy examples/repos.example.conf to %s and add your own.\n",
+			filepath.Join(home, ".config", "linutils", "repos.conf"))
+		return nil
+	}
+
+	var options []huh.Option[string]
+	for name, url := range myRepos {
+		options = append(options, huh.NewOption(name, url))
+	}
 
 	var selectedRepos []string
 	var targetBaseDir string
@@ -31,12 +69,7 @@ func CloneRepos(manager pkgmanager.PackageManager) error {
 		huh.NewGroup(
 			huh.NewMultiSelect[string]().
 				Title("Select Repositories to Clone").
-				Options(
-					huh.NewOption("DSA Tracker", myRepos["DSA Tracker"]),
-					huh.NewOption("Java Learning", myRepos["Java Learning"]),
-					huh.NewOption("Obsidian Vault", myRepos["Obsidian Vault"]),
-					huh.NewOption("Rakesh Portfolio", myRepos["Rakesh Portfolio"]),
-				).
+				Options(options...).
 				Value(&selectedRepos),
 
 			huh.NewInput().

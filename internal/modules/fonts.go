@@ -6,10 +6,18 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
 )
 
-const fontsRepo = "https://github.com/rak626/fonts.git"
+const defaultFontsRepo = "https://github.com/rak626/fonts.git"
+
+// FontsRepo returns the fonts repo URL, overridable via FONTS_REPO.
+func FontsRepo() string {
+	if v := os.Getenv("FONTS_REPO"); v != "" {
+		return v
+	}
+	return defaultFontsRepo
+}
 
 func SetupFonts(manager pkgmanager.PackageManager) error {
 	fmt.Println("\n--- Fonts Setup ---")
@@ -24,12 +32,12 @@ func SetupFonts(manager pkgmanager.PackageManager) error {
 	}
 
 	// 2. Clone fonts repo
-	fmt.Printf("Cloning fonts from %s...\n", fontsRepo)
+	fmt.Printf("Cloning fonts from %s...\n", FontsRepo())
 	if _, err := os.Stat(tempCloneDir); err == nil {
 		os.RemoveAll(tempCloneDir)
 	}
 
-	cmd := exec.Command("git", "clone", "--depth", "1", fontsRepo, tempCloneDir)
+	cmd := exec.Command("git", "clone", "--depth", "1", FontsRepo(), tempCloneDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -50,7 +58,7 @@ func SetupFonts(manager pkgmanager.PackageManager) error {
 		if ext == ".ttf" || ext == ".otf" || ext == ".woff" || ext == ".woff2" {
 			dest := filepath.Join(fontsDir, filepath.Base(path))
 			fmt.Printf("Copying %s to %s\n", filepath.Base(path), fontsDir)
-			
+
 			input, err := os.ReadFile(path)
 			if err != nil {
 				return err

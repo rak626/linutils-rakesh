@@ -7,78 +7,58 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/rakesh/linutils-rakesh/internal/system"
+	"github.com/rak626/linutils-rakesh/internal/system"
 )
 
 var (
-	// Colors - Nord-inspired / Modern
-	fgColor      = lipgloss.Color("#D8DEE9")
-	accentColor  = lipgloss.Color("#88C0D0") // Frost blue
-	successColor = lipgloss.Color("#A3BE8C") // Aurora green
-	warningColor = lipgloss.Color("#EBCB8B") // Aurora yellow
-	grayColor    = lipgloss.Color("#4C566A")
-	dimColor     = lipgloss.Color("#626262")
-	white        = lipgloss.Color("#FFFFFF")
+	// Gruvbox Dark Medium aliases — single source is theme.go.
+	fgColor      = GruvFg
+	accentColor  = GruvOrange
+	successColor = GruvGreen
+	warningColor = GruvYellow
+	grayColor    = GruvBg2
+	dimColor     = GruvGray
+	white        = GruvFg0
 
 	// Styles
-	headerStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(accentColor).
-			MarginBottom(1).
-			Padding(0, 2)
+	headerStyle = ThemeHeader.MarginBottom(1)
 
-	sidebarStyle = lipgloss.NewStyle().
-			Padding(1, 2).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(grayColor).
-			Width(40) // Increased width
+	sidebarStyle = ThemeSidebar.Width(38)
 
-	mainContentStyle = lipgloss.NewStyle().
-				Padding(1, 2).
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(accentColor)
+	mainContentStyle = ThemeMain
 
 	tabStyle = lipgloss.NewStyle().
 			Padding(0, 1).
-			Foreground(fgColor)
+			Foreground(GruvFg)
 
 	activeTabStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(accentColor).
+			Foreground(GruvOrange).
 			Padding(0, 1)
 
-	selectedItemStyle = lipgloss.NewStyle().
-				Foreground(successColor).
-				Bold(true)
+	selectedItemStyle = ThemeSelected
 
-	cursorItemStyle = lipgloss.NewStyle().
-			Background(grayColor).
-			Foreground(white).
-			Bold(true)
+	cursorItemStyle = ThemeCursor
 
 	systemInfoStyle = lipgloss.NewStyle().
 			MarginTop(1).
 			Border(lipgloss.NormalBorder(), true, false, false, false).
-			BorderForeground(grayColor).
+			BorderForeground(GruvBg2).
 			PaddingTop(1)
 
-	sysKeyStyle = lipgloss.NewStyle().Foreground(accentColor).Bold(true)
-	sysValStyle = lipgloss.NewStyle().Foreground(fgColor)
+	sysKeyStyle = ThemeSysKey
+	sysValStyle = ThemeSysVal
 
-	footerStyle = lipgloss.NewStyle().
-			MarginTop(1).
-			Padding(0, 2).
-			Border(lipgloss.NormalBorder(), true, false, false, false).
-			BorderForeground(grayColor)
+	footerStyle = ThemeFooter.MarginTop(1)
 
-	helpLabelStyle = lipgloss.NewStyle().Foreground(accentColor).Bold(true)
-	helpKeyStyle   = lipgloss.NewStyle().Foreground(warningColor)
-	helpTextStyle  = lipgloss.NewStyle().Foreground(dimColor)
+	helpLabelStyle = ThemeLabel
+	helpKeyStyle   = ThemeKey
+	helpTextStyle  = ThemeDim
 
 	searchInputStyle = lipgloss.NewStyle().
-				Foreground(accentColor).
+				Foreground(GruvOrange).
 				Border(lipgloss.NormalBorder()).
-				BorderForeground(grayColor).
+				BorderForeground(GruvBg2).
 				Padding(0, 1)
 )
 
@@ -88,6 +68,7 @@ type ListItem struct {
 	Category    string
 	Description string
 	Selected    bool
+	Hidden      bool
 }
 
 type ListModel struct {
@@ -99,13 +80,14 @@ type ListModel struct {
 	Cursor      int
 	Action      string // "r" for remove, "i" for install, "" for none
 	Finished    bool
+	ShowHelp    bool
 
-	Tabs       []string
-	ActiveTab  int
-	SearchInput textinput.Model
+	Tabs         []string
+	ActiveTab    int
+	SearchInput  textinput.Model
 	ScrollOffset int
-	Width      int
-	Height     int
+	Width        int
+	Height       int
 }
 
 func (m ListModel) Init() tea.Cmd {
@@ -123,9 +105,19 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
+			m.Action = "quit"
 			m.Finished = true
 			return m, tea.Quit
+		case "?", "h":
+			if !m.SearchInput.Focused() {
+				m.ShowHelp = !m.ShowHelp
+				return m, nil
+			}
 		case "esc":
+			if m.ShowHelp {
+				m.ShowHelp = false
+				return m, nil
+			}
 			if m.SearchInput.Focused() {
 				m.SearchInput.Blur()
 				m.SearchInput.SetValue("")
@@ -136,6 +128,9 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 		case "up", "k":
+			if len(m.Filtered) == 0 {
+				break
+			}
 			if m.Cursor > 0 {
 				m.Cursor--
 			} else {
@@ -143,6 +138,9 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.fixScroll()
 		case "down", "j":
+			if len(m.Filtered) == 0 {
+				break
+			}
 			if m.Cursor < len(m.Filtered)-1 {
 				m.Cursor++
 			} else {
@@ -150,11 +148,17 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.fixScroll()
 		case "tab":
+			if len(m.Tabs) == 0 {
+				break
+			}
 			m.ActiveTab = (m.ActiveTab + 1) % len(m.Tabs)
 			m.Cursor = 0
 			m.ScrollOffset = 0
 			m.filterItems()
 		case "shift+tab":
+			if len(m.Tabs) == 0 {
+				break
+			}
 			m.ActiveTab = (m.ActiveTab - 1 + len(m.Tabs)) % len(m.Tabs)
 			m.Cursor = 0
 			m.ScrollOffset = 0
@@ -194,16 +198,16 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						break
 					}
 				}
-				
+
 				if !anySelected && len(m.Filtered) > 0 {
 					// We'll signal this by setting a special state or returning it
 					// For now, let's just make sure the calling code knows.
 					m.Items[m.Filtered[m.Cursor]].Selected = true
-					m.Action = "i_single" 
+					m.Action = "i_single"
 				} else {
 					m.Action = "i"
 				}
-				
+
 				m.Finished = true
 				return m, tea.Quit
 			}
@@ -243,11 +247,17 @@ func (m *ListModel) fixScroll() {
 func (m *ListModel) filterItems() {
 	m.Filtered = []int{}
 	searchTerm := strings.ToLower(m.SearchInput.Value())
-	currentCategory := m.Tabs[m.ActiveTab]
+	currentCategory := "All"
+	if len(m.Tabs) > 0 {
+		currentCategory = m.Tabs[m.ActiveTab]
+	}
 
 	for i, item := range m.Items {
+		if item.Hidden {
+			continue
+		}
 		matchesCategory := currentCategory == "All" || item.Category == currentCategory
-		matchesSearch := searchTerm == "" || strings.Contains(strings.ToLower(item.Name), searchTerm) || strings.Contains(strings.ToLower(item.Category), searchTerm)
+		matchesSearch := searchTerm == "" || strings.Contains(strings.ToLower(item.Name), searchTerm) || strings.Contains(strings.ToLower(item.Category), searchTerm) || strings.Contains(strings.ToLower(item.Description), searchTerm)
 
 		if matchesCategory && matchesSearch {
 			m.Filtered = append(m.Filtered, i)
@@ -265,11 +275,11 @@ func (m ListModel) View() string {
 		return "Initializing..."
 	}
 
-	// 1. Header
+	// 1. Header — ASCII only
 	title := strings.ToUpper(m.Title)
-	header := headerStyle.Render("󱄅 LINUTILS RAKESH  󰁔  " + title)
+	header := headerStyle.Render("[#] LINUTILS RAKESH  >  " + title)
 
-	// 2. Sidebar (System Info) - More Width
+	// 2. Sidebar (System Info) — responsive widths
 	bodyHeight := m.Height - 10
 	if bodyHeight < 10 {
 		bodyHeight = 10
@@ -286,9 +296,9 @@ func (m ListModel) View() string {
 	}
 
 	sysInfoContent := fmt.Sprintf("%s\n%s\n\n%s\n\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
-		helpLabelStyle.Render("󰄾 CURRENT TASK"),
+		helpLabelStyle.Render("# CURRENT TASK"),
 		lipgloss.NewStyle().Foreground(accentColor).Bold(true).Render(m.Title),
-		helpLabelStyle.Render("󰄾 SYSTEM SPECIFICATIONS"),
+		helpLabelStyle.Render("# SYSTEM"),
 		sysKeyStyle.Render("OS:  "), sysValStyle.Render(osDisplay),
 		sysKeyStyle.Render("DE:  "), sysValStyle.Render(deDisplay),
 		sysKeyStyle.Render("CPU: "), sysValStyle.Render(m.SysInfo.CPU),
@@ -296,18 +306,22 @@ func (m ListModel) View() string {
 		sysKeyStyle.Render("DISK:"), sysValStyle.Render(m.SysInfo.Disk),
 		sysKeyStyle.Render("GPU: "), sysValStyle.Render(m.SysInfo.GPU),
 	)
-	
-	sidebar := sidebarStyle.
-		Height(bodyHeight).
-		Render(sysInfoContent)
 
-	// 3. Main Content (Presets)
+	showSidebar := m.Width >= 100
+	var sidebar string
+	if showSidebar {
+		sidebar = sidebarStyle.
+			Height(bodyHeight).
+			Render(sysInfoContent)
+	}
+
+	// 3. Main Content (Presets) — ASCII only
 	boxTitle := "SELECTION"
 	if m.Title != "" {
 		boxTitle = m.Title
 	}
-	listContent := helpLabelStyle.Render("󰄾 " + strings.ToUpper(boxTitle)) + "\n\n"
-	
+	listContent := helpLabelStyle.Render("# "+strings.ToUpper(boxTitle)) + "\n\n"
+
 	visibleHeight := bodyHeight - 4
 	end := m.ScrollOffset + visibleHeight
 	if end > len(m.Filtered) {
@@ -317,18 +331,27 @@ func (m ListModel) View() string {
 	for i := m.ScrollOffset; i < end; i++ {
 		idx := m.Filtered[i]
 		item := m.Items[idx]
-		
-		// Selection indicator
-		checked := "○"
+
+		// Selection indicator — ASCII
+		checked := MarkUnselected
 		if item.Selected {
-			checked = lipgloss.NewStyle().Foreground(successColor).Render("●")
+			checked = MarkSelected
 		}
 
 		// Cursor indicator and item text
 		line := fmt.Sprintf(" %s %s", checked, item.Name)
-		
+
 		if m.Cursor == i {
-			listContent += cursorItemStyle.Width(m.Width - 55).Render(""+line) + "\n"
+			w := m.Width - 12
+			if !showSidebar {
+				w = m.Width - 8
+			} else {
+				w = m.Width - 52
+			}
+			if w < 20 {
+				w = 20
+			}
+			listContent += cursorItemStyle.Width(w).Render(MarkCursor+line) + "\n"
 		} else {
 			if item.Selected {
 				listContent += selectedItemStyle.Render(" "+line) + "\n"
@@ -338,39 +361,77 @@ func (m ListModel) View() string {
 		}
 	}
 
+	mainWidth := m.Width - 6
+	if showSidebar {
+		mainWidth = m.Width - 46
+	}
+	if mainWidth < 20 {
+		mainWidth = 20
+	}
 	main := mainContentStyle.
 		Height(bodyHeight).
-		Width(m.Width - 48).
+		Width(mainWidth).
 		Render(listContent)
 
-	// Combine Sidebar and Main
-	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, main)
+	// Combine Sidebar and Main — stack on narrow terminals
+	var body string
+	if showSidebar {
+		body = lipgloss.JoinHorizontal(lipgloss.Top, sidebar, main)
+	} else {
+		body = main
+	}
 
-	// 4. Footer
+	// 4. Footer — ASCII, rune-safe truncation
 	footerContent := ""
 	if len(m.Filtered) > 0 && m.Cursor < len(m.Filtered) {
 		item := m.Items[m.Filtered[m.Cursor]]
 		desc := item.Description
-		// Truncate description if too long
-		if len(desc) > m.Width-15 {
-			desc = desc[:m.Width-18] + "..."
+		maxDesc := m.Width - 15
+		if maxDesc < 10 {
+			maxDesc = 10
 		}
-		footerContent += fmt.Sprintf("%s %s\n", helpLabelStyle.Render("󰛨 DESC:"), desc)
+		if len([]rune(desc)) > maxDesc {
+			desc = string([]rune(desc)[:maxDesc-3]) + "..."
+		}
+		footerContent += fmt.Sprintf("%s %s\n", helpLabelStyle.Render("DESC:"), desc)
 	}
-	
-	commands := fmt.Sprintf("%s Quit  %s Navigate  %s Select  %s Toggle All  %s Install",
+
+	commands := fmt.Sprintf("%s Quit  %s Move  %s Select  %s All  %s Run  %s Help  %s Search",
 		helpKeyStyle.Render("[q]"),
 		helpKeyStyle.Render("[j/k]"),
 		helpKeyStyle.Render("[Space]"),
 		helpKeyStyle.Render("[Ctrl+v]"),
 		helpKeyStyle.Render("[Enter]"),
+		helpKeyStyle.Render("[?]"),
+		helpKeyStyle.Render("[/]"),
 	)
-	
+	if m.Width < 100 {
+		commands += "\n" + ThemeDim.Render("Small screen: sidebar hidden. All keys still work.")
+	}
+
 	footer := footerStyle.Width(m.Width - 4).Render(footerContent + commands)
 
-	return lipgloss.JoinVertical(lipgloss.Left, header, body, footer)
-}
+	view := lipgloss.JoinVertical(lipgloss.Left, header, body, footer)
+	if m.ShowHelp {
+		help := ThemeCard.
+			Width(60).
+			Render(ThemeLabel.Render("HELP") + "\n\n" +
+				"j/k or Up/Down : move\n" +
+				"Space          : select\n" +
+				"Enter          : run (single if none selected)\n" +
+				"Ctrl+v         : toggle all visible\n" +
+				"/ then type    : search, Esc clears\n" +
+				"Tab            : next category\n" +
+				"r              : remove mode (debloat)\n" +
+				"q / Esc        : back / quit\n\n" +
+				"Press ? or Esc to close")
+		_ = help
+		// Overlay help by appending below — keeps it simple and ASCII-safe.
+		view = lipgloss.JoinVertical(lipgloss.Left, view, "", ThemeDim.Render("HELP OPEN: j/k move, Space select, Enter run, / search, q back. Press ? to close."))
+	}
 
+	return view
+}
 
 func RunListUI(title string, items []ListItem) (string, []ListItem, error) {
 	return RunListUIWithDesc(title, "", items)
@@ -378,7 +439,7 @@ func RunListUI(title string, items []ListItem) (string, []ListItem, error) {
 
 func RunListUIWithDesc(title, desc string, items []ListItem) (string, []ListItem, error) {
 	sysInfo := system.GetSystemInfo()
-	
+
 	ti := textinput.New()
 	ti.Placeholder = "Search..."
 	ti.CharLimit = 50

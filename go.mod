@@ -1,4 +1,4 @@
-module github.com/rakesh/linutils-rakesh
+module github.com/rak626/linutils-rakesh
 
 go 1.26.3
 

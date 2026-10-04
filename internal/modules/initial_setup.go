@@ -7,29 +7,29 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
-	"github.com/rakesh/linutils-rakesh/internal/system"
-	"github.com/rakesh/linutils-rakesh/internal/tui"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/system"
+	"github.com/rak626/linutils-rakesh/internal/tui"
 )
 
 var (
 	alertStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#FFFFFF")).
-			Background(lipgloss.Color("#FF0000")).
-			Padding(1, 4).
-			MarginTop(1).
-			MarginBottom(1)
+		Bold(true).
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Background(lipgloss.Color("#FF0000")).
+		Padding(1, 4).
+		MarginTop(1).
+		MarginBottom(1)
 )
 
 func RunInitialSetup(manager pkgmanager.PackageManager, sysInfo system.Info) error {
 	// If the OS is recognized, we can skip the prompt in automated/quick setup scenarios
-	// For now, we'll still prompt if RunInitialSetup is called directly, 
+	// For now, we'll still prompt if RunInitialSetup is called directly,
 	// but we can add a way to skip it.
 	// Actually, let's just make it auto-detect if sysInfo.OS matches one of our supported ones.
 
 	fmt.Printf("Detected OS: %s\n", sysInfo.OS)
-	
+
 	switch sysInfo.OS {
 	case "fedora":
 		setupFedora(manager)
@@ -49,7 +49,7 @@ func RunInitialSetup(manager pkgmanager.PackageManager, sysInfo system.Info) err
 		}
 
 		action, results, err := tui.RunListUI("OS Initial Setup", items)
-		if err != nil || action == "" {
+		if err != nil || action == "" || action == "back" || action == "quit" {
 			return err
 		}
 

@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rakesh/linutils-rakesh/internal/config"
-	"github.com/rakesh/linutils-rakesh/internal/pkgmanager"
-	"github.com/rakesh/linutils-rakesh/internal/system"
-	"github.com/rakesh/linutils-rakesh/internal/tui"
+	"github.com/rak626/linutils-rakesh/internal/config"
+	"github.com/rak626/linutils-rakesh/internal/pkgmanager"
+	"github.com/rak626/linutils-rakesh/internal/system"
+	"github.com/rak626/linutils-rakesh/internal/tui"
 )
 
 func InstallSoftware(manager pkgmanager.PackageManager, sysInfo system.Info, items []tui.ListItem) ([]tui.ListItem, error) {
