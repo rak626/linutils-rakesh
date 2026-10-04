@@ -176,6 +176,10 @@ func main() {
 				modules.SetupDotfiles(manager)
 			case tui.FeatureFonts:
 				modules.SetupFonts(manager)
+			case tui.FeatureFontSwitcher:
+				if err := modules.SetupFontSwitcher(manager); err != nil {
+					fmt.Printf("Font switcher failed: %v\n", err)
+				}
 			case tui.FeatureIcons:
 				modules.InstallIconAssets(manager)
 			case tui.FeatureRepos:

@@ -35,6 +35,7 @@ const (
 	FeatureFlatpak        = "Flatpak Setup"
 	FeatureDotfiles       = "Dotfiles Sync"
 	FeatureFonts          = "Fonts Setup"
+	FeatureFontSwitcher   = "Font Switcher"
 	FeatureIcons          = "Icons & Cursors"
 	FeatureRepos          = "GitHub Repo Cloner"
 	FeatureNvidia         = "NVIDIA Driver Setup"
@@ -79,6 +80,11 @@ func RunMainMenu(sysInfo system.Info, state *MainConfig) (MainConfig, error) {
 			Key:         FeatureSoftwarePicker,
 			Name:        "Software Picker",
 			Description: "Choose what to install from catalog. Nothing auto-installed.",
+		})
+		items = append(items, ListItem{
+			Key:         FeatureFontSwitcher,
+			Name:        "Font Switcher",
+			Description: "Pick installed font, apply to GNOME/Hyprland/i3 apps. Skips missing.",
 		})
 
 		if IsAdvancedEnabled() {
